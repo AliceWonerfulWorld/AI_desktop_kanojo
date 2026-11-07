@@ -13,7 +13,10 @@ import trayIconPath from '../../resources/tray.png?asset'
 import { channels } from '../shared/desktop-api'
 import { fitToWorkArea, initialBounds } from './window-bounds'
 
-export function createDesktopWindow(): BrowserWindow {
+export function createDesktopWindow(): {
+  window: BrowserWindow
+  show: () => void
+} {
   const window = new BrowserWindow({
     ...initialBounds(screen.getPrimaryDisplay().workArea),
     frame: false,
@@ -39,6 +42,7 @@ export function createDesktopWindow(): BrowserWindow {
   let clickThrough = supportsForwarding
   let interactive = false
   let quitting = false
+  let shown = false
   let drag:
     | {
         cursor: Electron.Point
@@ -82,20 +86,22 @@ export function createDesktopWindow(): BrowserWindow {
     interactive = false
     keepOnScreen()
     updateMouse()
+    shown = true
     window.showInactive()
     refreshTray()
   }
 
   function hide(): void {
     stopDrag()
+    shown = false
     window.hide()
     refreshTray()
   }
 
   function menuItems(): MenuItemConstructorOptions[] {
     return [
-      { label: '表示', enabled: !window.isVisible(), click: show },
-      { label: '非表示', enabled: window.isVisible(), click: hide },
+      { label: '表示', enabled: !shown, click: show },
+      { label: '非表示', enabled: shown, click: hide },
       { type: 'separator' },
       {
         label: '常に手前に表示',
@@ -145,10 +151,14 @@ export function createDesktopWindow(): BrowserWindow {
   refreshTray()
   tray.on('double-click', show)
   window.on('show', () => {
+    shown = true
     keepOnScreen()
     refreshTray()
   })
-  window.on('hide', refreshTray)
+  window.on('hide', () => {
+    shown = false
+    refreshTray()
+  })
 
   const trusted = (event: IpcMainEvent): boolean =>
     event.sender === window.webContents &&
@@ -237,5 +247,5 @@ export function createDesktopWindow(): BrowserWindow {
   })
   window.once('ready-to-show', show)
   updateMouse()
-  return window
+  return { window, show }
 }

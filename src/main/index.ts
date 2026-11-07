@@ -1,9 +1,12 @@
-import { app, BrowserWindow, Menu } from 'electron'
+import { app, Menu } from 'electron'
 import { join } from 'node:path'
 import { createDesktopWindow } from './desktop-window'
 
+let desktop: ReturnType<typeof createDesktopWindow> | undefined
+
 function createWindow(): void {
-  const window = createDesktopWindow()
+  desktop = createDesktopWindow()
+  const { window } = desktop
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', (event) => event.preventDefault())
   window.webContents.on('preload-error', (_event, path, error) => {
@@ -26,12 +29,7 @@ function createWindow(): void {
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
-  app.on('second-instance', () => {
-    const window = BrowserWindow.getAllWindows().find(
-      (candidate) => candidate.getTitle() === 'AI Desktop Kanojo',
-    )
-    window?.showInactive()
-  })
+  app.on('second-instance', () => desktop?.show())
   void app
     .whenReady()
     .then(() => {
@@ -41,11 +39,7 @@ if (!app.requestSingleInstanceLock()) {
           : null,
       )
       createWindow()
-      app.on('activate', () => {
-        const window = BrowserWindow.getAllWindows()[0]
-        if (window) window.showInactive()
-        else createWindow()
-      })
+      app.on('activate', () => desktop?.show())
     })
     .catch((error: unknown) => {
       console.error('Application startup failed', error)
