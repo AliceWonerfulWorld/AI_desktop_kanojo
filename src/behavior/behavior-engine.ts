@@ -36,8 +36,14 @@ export interface BehaviorEvent {
   readonly previous: Action | null
   readonly snapshot: BehaviorSnapshot
 }
+export interface BehaviorSelectionPolicy {
+  readonly weights: Readonly<Record<Action, number>>
+  readonly allowSleepingRepeat?: boolean
+}
+
 export interface BehaviorOptions {
   readonly clock: BehaviorClock
+  readonly selectionPolicy?: () => BehaviorSelectionPolicy
   readonly random?: () => number
   readonly rules?: BehaviorRules
   readonly onError?: (error: unknown) => void
@@ -46,6 +52,7 @@ export interface BehaviorOptions {
 /** No DOM, Electron, concrete dialogue, image paths, or animation implementation. */
 export class BehaviorEngine {
   private readonly clock: BehaviorClock
+  private readonly selectionPolicy: (() => BehaviorSelectionPolicy) | undefined
   private readonly random: () => number
   private readonly rules: BehaviorRules
   private readonly onError: (error: unknown) => void
@@ -59,6 +66,7 @@ export class BehaviorEngine {
 
   constructor(options: BehaviorOptions) {
     this.clock = options.clock
+    this.selectionPolicy = options.selectionPolicy
     this.random = options.random ?? Math.random
     this.onError = options.onError ?? console.error
     const rules = options.rules ?? defaultBehaviorRules
@@ -120,7 +128,7 @@ export class BehaviorEngine {
     if (this.status === 'disposed')
       throw new Error('BehaviorEngine is disposed')
     if (this.status !== 'stopped') return
-    this.enter('idle', 'started')
+    this.enter(this.selectionPolicy ? this.nextAction(null) : 'idle', 'started')
   }
 
   pause(): void {
@@ -167,17 +175,32 @@ export class BehaviorEngine {
     return value
   }
 
-  private nextAction(previous: Action): Action {
+  private nextAction(previous: Action | null): Action {
+    const policy = this.selectionPolicy?.()
+    const weights = Object.fromEntries(
+      actions.map((action) => [
+        action,
+        policy ? policy.weights[action] : this.rules[action].weight,
+      ]),
+    ) as Record<Action, number>
+    if (
+      actions.some(
+        (action) => !Number.isFinite(weights[action]) || weights[action] < 0,
+      )
+    )
+      throw new RangeError('Invalid selection weights')
     const candidates = actions.filter(
-      (action) => action !== previous && this.rules[action].weight > 0,
+      (action) =>
+        weights[action] > 0 &&
+        (action !== previous ||
+          (action === 'sleeping' && policy?.allowSleepingRepeat)),
     )
-    const total = candidates.reduce(
-      (sum, action) => sum + this.rules[action].weight,
-      0,
-    )
+    const total = candidates.reduce((sum, action) => sum + weights[action], 0)
+    if (!Number.isFinite(total) || total <= 0)
+      throw new RangeError('No eligible weighted action')
     let value = this.sample() * total
     for (const action of candidates) {
-      value -= this.rules[action].weight
+      value -= weights[action]
       if (value < 0) return action
     }
     return candidates[candidates.length - 1]!

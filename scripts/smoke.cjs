@@ -1,6 +1,19 @@
 const assert = require('node:assert/strict')
 const { once } = require('node:events')
-const { app, Tray, Menu, screen, ipcMain } = require('electron')
+const { mkdtempSync, rmSync } = require('node:fs')
+const { tmpdir } = require('node:os')
+const { join } = require('node:path')
+const { app, Tray, Menu, screen, ipcMain, powerMonitor } = require('electron')
+
+const testUserData = mkdtempSync(join(tmpdir(), 'kanojo-smoke-'))
+app.setPath('userData', testUserData)
+app.on('quit', () => {
+  try {
+    rmSync(testUserData, { recursive: true, force: true })
+  } catch (error) {
+    console.warn('Temporary userData cleanup deferred:', error.code)
+  }
+})
 
 async function waitFor(condition) {
   for (let attempt = 0; attempt < 150; attempt++) {
@@ -47,6 +60,7 @@ const timeout = setTimeout(() => {
   console.error('Smoke check timed out')
   app.exit(1)
 }, 30000)
+app.once('quit', () => clearTimeout(timeout))
 
 app.on('browser-window-created', (_event, window) => {
   let ignoringMouse = false
@@ -65,7 +79,7 @@ app.on('browser-window-created', (_event, window) => {
       await waitFor(() => window.isVisible())
       await waitFor(() =>
         window.webContents.executeJavaScript(
-          "document.querySelector('#character').dataset.ready === 'true'",
+          "document.querySelector('#character').dataset.ready === 'true' && document.body.dataset.lifecycleReady === 'true'",
         ),
       )
       const preferences = window.webContents.getLastWebPreferences()
@@ -85,6 +99,9 @@ app.on('browser-window-created', (_event, window) => {
         hasCanvas: !!document.querySelector('#character canvas'),
         previewType: typeof window.characterPreview,
         behaviorPreviewType: typeof window.behaviorPreview,
+        timePreviewType: typeof window.timePreview,
+        greeting: document.querySelector('#greeting').textContent,
+        greetingPointerEvents: getComputedStyle(document.querySelector('#greeting')).pointerEvents,
         autonomousAction: document.querySelector('#character').dataset.action
       })`)
       assert.match(state.status, /接続を確認しました/)
@@ -100,10 +117,54 @@ app.on('browser-window-created', (_event, window) => {
       )
 
       assert.equal(state.behaviorPreviewType, 'undefined')
+      assert.ok(
+        ['idle', 'reading', 'resting', 'sleeping'].includes(
+          state.autonomousAction,
+        ),
+      )
+      assert.equal(state.timePreviewType, 'undefined')
+      assert.match(state.greeting, /はじめまして/)
+      assert.equal(state.greetingPointerEvents, 'none')
+      assert.deepEqual(
+        await window.webContents.executeJavaScript(
+          'window.desktop.getLaunchInfo()',
+        ),
+        { firstLaunch: true },
+      )
+
+      await window.webContents.executeJavaScript(`{
+        window.__powerSnapshots = [];
+        addEventListener('character-behavior', event => window.__powerSnapshots.push(event.detail.snapshot));
+      }`)
+      powerMonitor.emit('suspend')
+      powerMonitor.emit('suspend')
+      await waitFor(() =>
+        window.webContents.executeJavaScript(
+          "window.__powerSnapshots.at(-1)?.status === 'paused'",
+        ),
+      )
+      powerMonitor.emit('resume')
+      powerMonitor.emit('resume')
+      await waitFor(() =>
+        window.webContents.executeJavaScript(
+          "window.__powerSnapshots.at(-1)?.status === 'running'",
+        ),
+      )
+      const powerStates = await window.webContents.executeJavaScript(
+        'window.__powerSnapshots.map(snapshot => snapshot.status)',
+      )
+      assert.deepEqual(powerStates, ['paused', 'running'])
+      await window.webContents.executeJavaScript(`{
+        window.__removedPowerCallbacks = 0;
+        const remove = window.desktop.onPowerState(() => window.__removedPowerCallbacks++);
+        remove();
+      }`)
+      window.webContents.send('desktop:power', 'invalid')
       assert.equal(
-        state.autonomousAction,
-        'idle',
-        'production renderer starts autonomous behavior',
+        await window.webContents.executeJavaScript(
+          'window.__removedPowerCallbacks',
+        ),
+        0,
       )
 
       const ipc = async (channel, expression) => {
@@ -242,7 +303,6 @@ app.on('browser-window-created', (_event, window) => {
         'Smoke check passed: secure transparent renderer, hit regions, IPC, tray menus, recovery',
       )
       completed = true
-      clearTimeout(timeout)
       // Exercise the real Quit path, including native tray and window cleanup.
       item('終了').click()
     } catch (error) {

@@ -29,6 +29,8 @@
 
 | [17-behavior-engine-validation.md](17-behavior-engine-validation.md) | 自律行動の継続時間・遷移・通知・停止復帰の検証 |
 
+| [18-time-policy-validation.md](18-time-policy-validation.md) | 時間帯別行動、起動挨拶、時計変更・スリープの検証 |
+
 ## 意思決定済み
 - 成人キャラクター1名のデスクトップ常駐アプリ
 - 自律的な生活が主役（A）、親密度の変化は補助（B）

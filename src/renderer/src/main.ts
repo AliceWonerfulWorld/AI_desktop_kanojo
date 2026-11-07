@@ -1,5 +1,8 @@
 import './style.css'
-import { createBehaviorRuntime } from './behavior/runtime'
+import { timeContextAt } from '../../behavior/time-policy'
+import { createPowerLifecycle } from '../../behavior/power-lifecycle'
+import { GreetingPresenter, greetingFor } from './dialogue/greeting'
+import { browserBehaviorClock, createBehaviorRuntime } from './behavior/runtime'
 import type { BehaviorEngine } from '../../behavior/behavior-engine'
 import { characterAssets } from './character/assets'
 import { PngCharacterRenderer } from './character/png-renderer'
@@ -7,6 +10,11 @@ import type { CharacterRenderer, RenderResult } from './character/renderer'
 
 const character = document.querySelector<HTMLDivElement>('#character')!
 const status = document.querySelector<HTMLParagraphElement>('#status')!
+const localTime = { now: () => new Date() }
+let disposed = false
+let greeting: GreetingPresenter | undefined
+let removePowerListener: (() => void) | undefined
+let removeTimePreview: (() => void) | undefined
 let activePointer: number | undefined
 let interactive: boolean | undefined
 let lastPointer: { x: number; y: number } | undefined
@@ -82,7 +90,11 @@ async function initialize(): Promise<void> {
   character.addEventListener('lostpointercapture', () => stopDrag())
   window.addEventListener('blur', () => stopDrag())
   window.addEventListener('pagehide', () => {
+    disposed = true
     stopDrag()
+    removePowerListener?.()
+    removeTimePreview?.()
+    greeting?.dispose()
     behavior?.dispose()
     removeBehaviorPreview?.()
     removePreview?.()
@@ -100,22 +112,72 @@ async function initialize(): Promise<void> {
     }
   })
   await renderer.setState({ action: 'idle', expression: 'neutral' })
-  behavior = createBehaviorRuntime(renderer, (event) => {
-    character.dataset.action = event.snapshot.current?.action ?? ''
-    window.dispatchEvent(
-      new CustomEvent('character-behavior', { detail: event }),
+  const launchInfo = await window.desktop.getLaunchInfo()
+  if (disposed) return
+  greeting = new GreetingPresenter(
+    document.querySelector<HTMLParagraphElement>('#greeting')!,
+    browserBehaviorClock,
+  )
+  const publishTime = (): void => {
+    const context = timeContextAt(localTime.now())
+    document.body.dataset.timePeriod = context.period
+    window.dispatchEvent(new CustomEvent('character-time', { detail: context }))
+  }
+  const displayGreeting = (firstLaunch: boolean): void => {
+    publishTime()
+    greeting?.show(
+      greetingFor(timeContextAt(localTime.now()).period, firstLaunch),
     )
+  }
+  behavior = createBehaviorRuntime(
+    renderer,
+    (event) => {
+      character.dataset.action = event.snapshot.current?.action ?? ''
+      publishTime()
+      window.dispatchEvent(
+        new CustomEvent('character-behavior', { detail: event }),
+      )
+    },
+    {
+      clock: browserBehaviorClock,
+      selectionPolicy: () => timeContextAt(localTime.now()),
+    },
+  )
+  const powerLifecycle = createPowerLifecycle(behavior)
+  removePowerListener = window.desktop.onPowerState((state) => {
+    if (!powerLifecycle(state)) return
+    if (state === 'suspend') greeting?.hide()
+    else {
+      publishTime()
+      if (!document.hidden) displayGreeting(false)
+    }
   })
   behavior.start()
+  displayGreeting(launchInfo.firstLaunch)
+  document.body.dataset.lifecycleReady = 'true'
   if (import.meta.env.DEV) {
-    const { installCharacterPreview } = await import('./character/preview')
+    const [
+      { installCharacterPreview },
+      { installBehaviorPreview },
+      { installTimePreview },
+    ] = await Promise.all([
+      import('./character/preview'),
+      import('./behavior/preview'),
+      import('./behavior/time-preview'),
+    ])
+    if (disposed) return
     removePreview = installCharacterPreview(renderer)
-    const { installBehaviorPreview } = await import('./behavior/preview')
     removeBehaviorPreview = installBehaviorPreview(behavior)
+    removeTimePreview = installTimePreview(localTime, () =>
+      displayGreeting(launchInfo.firstLaunch),
+    )
   }
 }
 
 void initialize().catch((error: unknown) => {
+  behavior?.dispose()
+  greeting?.dispose()
+  removePowerListener?.()
   window.desktop?.setPointerInteractive(false)
   status.textContent =
     '初期化に失敗しました。トレイから開発者ツールを開いてください。'
