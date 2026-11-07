@@ -23,6 +23,8 @@
 | [12-character-assets.md](12-character-assets.md) | PNG/PSD/Live2D用の素材一覧と優先度 |
 | [14-koharu-master-design.md](14-koharu-master-design.md) | 承認済み小春マスタービジュアルと通常・照れ・甘えの仕様 |
 
+| [15-character-renderer-validation.md](15-character-renderer-validation.md) | PNG差分、描画API、アルファ判定と検証 |
+
 ## 意思決定済み
 - 成人キャラクター1名のデスクトップ常駐アプリ
 - 自律的な生活が主役（A）、親密度の変化は補助（B）

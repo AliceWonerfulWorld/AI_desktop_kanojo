@@ -46,7 +46,7 @@ Renderer
 ## 3. 状態モデル案
 ```ts
 type Action = "idle" | "reading" | "resting" | "sleeping";
-type Expression = "neutral" | "smile" | "sleepy" | "surprised";
+type Expression = "neutral" | "smile" | "sleepy" | "surprised" | "shy" | "affectionate";
 type RelationshipStage = "stranger" | "familiar" | "close";
 
 interface CharacterState {
@@ -100,3 +100,9 @@ interface PersistedState {
 - 作業領域とカーソル座標は DIP で統一し、ディスプレイ変更時に位置を補正する。
 - 透過はマウス移動転送と Renderer の形状判定を利用する試験機能。トレイから無効化できる。
 - 実装範囲・実機未確認事項は [検証記録](13-desktop-window-validation.md) を参照。
+
+## 8. PNG差分描画（MVP-03）
+- `src/shared/character-state.ts` が行動・表情の意味型を定義する。通常表情のコードIDは neutral。
+- `CharacterRenderer` の setState / hitTest / dispose 経由で状態更新と入力判定を行う。
+- PNG実装は素材台帳の状態マッピングとフォールバック、元画像のアルファ判定を所有する。
+- 実装範囲・検証・Live2Dへの交換境界は [MVP-03 検証記録](15-character-renderer-validation.md) を参照。
