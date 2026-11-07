@@ -21,20 +21,21 @@
 | [10-character-profile.md](10-character-profile.md) | 小春（仮）のキャラ設定、性格・生活・関係性 |
 | [11-ai-character-generation.md](11-ai-character-generation.md) | AI画像生成用の指示、品質管理、Live2D加工工程 |
 | [12-character-assets.md](12-character-assets.md) | PNG/PSD/Live2D用の素材一覧と優先度 |
+| [14-koharu-master-design.md](14-koharu-master-design.md) | 承認済み小春マスタービジュアルと通常・照れ・甘えの仕様 |
 
 ## 意思決定済み
 - 成人キャラクター1名のデスクトップ常駐アプリ
 - 自律的な生活が主役（A）、親密度の変化は補助（B）
 - 2D立ち絵、表情・行動差分を利用
 - メインキャラは明るく元気、親密になると甘える一面を見せる、華奢で色白の成人女性
-- キャラ原画はAI画像生成を使用する方針（本番素材の生成・採用・商用規約確認は今後）
+- キャラ原画はAI画像生成を使用する方針。**小春の基準ビジュアルと通常・照れ・甘えの表現方針は承認済み**（画像のGitHub配置・ゲーム素材化・商用規約確認は今後）
 - MacBook Air（Apple Silicon / macOS）でMVPを先行開発し、Windows対応は後段で検証
 - 初期技術候補: Electron + TypeScript
 - ローカル保存・オフライン優先
 - 成人向け表現はユーザーの明示操作で表示する方向
 
 ## 未決定
-- 正式な製品名、キャラクター名・外見デザインの最終決定
+- 正式な製品名・キャラクター名の正式採用（小春は仮名）
 - ハッカソンの日程・チーム人数・審査基準
 - 正式なLive2D制作範囲と使用する画像生成AI・モデル
 - 音声・AI会話の搭載範囲と費用
