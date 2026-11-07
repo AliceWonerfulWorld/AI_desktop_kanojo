@@ -46,7 +46,7 @@ test('fallback preserves expression before action, deduplicates and retains requ
     assetCandidates({ action: 'sleeping', expression: 'shy' }, assets).map(
       (asset) => asset.id,
     ),
-    ['idle-neutral'],
+    ['idle-smile', 'idle-neutral'],
   )
   assert.equal(
     assetCandidates({ action: 'idle', expression: 'neutral' }, assets).length,

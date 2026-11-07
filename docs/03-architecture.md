@@ -125,3 +125,9 @@ interface PersistedState {
 - `responses.ts` が行動別の短い応答を所有し、`InteractionRenderer` が共通描画APIに一時表情を重ねる。行動エンジンとは独立。
 - 受け付けた交流だけを character-interaction で通知し、親密度の保存や増加はまだ行わない。
 - 受付間隔、復元、破棄と入力検証は [クリック交流検証記録](19-interaction-validation.md) を参照。
+
+## 12. 親密度（MVP-07）
+
+- `src/relationship/relationship.ts` は親密度・段階・加算間隔を管理する。単調時計を注入し、DOM/描画/会話文に依存しない。
+- Rendererが受け付けた交流通知でのみ加算する。会話側は段階を取得して反応を選び、行動エンジンは変更しない。
+- 保存は #8。開発用確認APIはDEV条件の動的import内に限定する。[仕様と検証](20-relationship-validation.md) を参照。

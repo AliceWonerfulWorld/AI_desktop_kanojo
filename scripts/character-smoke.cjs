@@ -178,6 +178,22 @@ void (async () => {
     await Promise.all(reactionTasks.splice(0));
     const afterReaction = host.querySelector('canvas').toDataURL();
     const hiddenAfterReaction = reactionView.hidden;
+    let stage = 'familiar';
+    const staged = new InteractionRenderer({
+      setState(state) { const task = renderer.setState(state); reactionTasks.push(task); return task },
+      hitTest: (x,y) => renderer.hitTest(x,y), dispose: () => {},
+    }, reactionBubble, clock, () => stage === 'close' ? 0 : 0.4, () => {}, () => stage);
+    const relationshipFrames = [];
+    for (const current of ['familiar', 'close']) {
+      stage = current;
+      await staged.setState({action:'reading',expression:'neutral'});
+      const event = staged.react();
+      await Promise.all(reactionTasks.splice(0));
+      relationshipFrames.push({event, result: applied.at(-1), pixels: host.querySelector('canvas').toDataURL()});
+      clock.advance(3000);
+      await Promise.all(reactionTasks.splice(0));
+    }
+    staged.dispose();
     interactive.dispose(); reactionBubble.dispose(); reactionView.remove();
 
     const disposedTimers = clock.tasks.size;
@@ -190,7 +206,7 @@ void (async () => {
     pendingRenderer.dispose()
     const disposedDuringLoad = await pending
     const afterDispose = await renderer.setState({action:'idle',expression:'smile'})
-    return {beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
+    return {relationshipFrames,beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
   })()`)
   assert.equal(
     new Set(results.snapshots.slice(0, 4).map((entry) => entry.pixels)).size,
@@ -203,8 +219,16 @@ void (async () => {
     assert.equal(entry.hole, false)
   }
   for (const entry of results.snapshots.slice(4)) {
-    assert.equal(entry.result.assetId, 'test-neutral')
+    assert.equal(entry.result.assetId, 'test-smile')
     assert.equal(entry.result.fallback, true)
+  }
+  for (const [index, frame] of results.relationshipFrames.entries()) {
+    assert.equal(frame.event.stage, index === 0 ? 'familiar' : 'close')
+    assert.equal(frame.event.expression, index === 0 ? 'shy' : 'affectionate')
+    assert.equal(frame.result.assetId, 'test-smile')
+    assert.equal(frame.result.state.action, 'reading')
+    assert.equal(frame.result.state.expression, frame.event.expression)
+    assert.equal(frame.pixels, results.snapshots[1].pixels)
   }
   for (const result of results.actionStates) {
     assert.equal(result.assetId, 'test-smile')

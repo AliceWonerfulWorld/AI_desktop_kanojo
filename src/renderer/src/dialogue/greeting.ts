@@ -1,5 +1,6 @@
 import type { TimePeriod } from '../../../behavior/time-policy'
 import type { BehaviorClock } from '../../../behavior/behavior-engine'
+import type { RelationshipStage } from '../../../relationship/relationship'
 
 const greetings: Readonly<Record<TimePeriod, string>> = {
   morning: 'おはよう！今日もよろしくね。',
@@ -7,8 +8,33 @@ const greetings: Readonly<Record<TimePeriod, string>> = {
   evening: 'こんばんは！今日もお疲れさま。',
   'late-night': '遅い時間だね。ゆっくり休もうね。',
 }
-export function greetingFor(period: TimePeriod, firstLaunch: boolean): string {
-  return `${firstLaunch ? 'はじめまして！' : ''}${greetings[period]}`
+const relationshipGreetings: Record<
+  Exclude<RelationshipStage, 'stranger'>,
+  Record<TimePeriod, string>
+> = {
+  familiar: {
+    morning: 'おはよう！ 顔を見られて嬉しいな。',
+    daytime: 'やっほー！ 今日も一緒にのんびりしよ。',
+    evening: 'こんばんは！ 一緒にひと休みしよっか。',
+    'late-night': '夜更かしだね。ゆっくり休んでね。',
+  },
+  close: {
+    morning: 'おはよう！ えへへ、一緒の朝だね。',
+    daytime: 'やっほー！ 隣でくつろいでもいい？',
+    evening: 'こんばんは。こうして一緒にいられるの、嬉しいな。',
+    'late-night': 'おやすみ。あったかくして休もうね。',
+  },
+}
+export function greetingFor(
+  period: TimePeriod,
+  firstLaunch: boolean,
+  stage: RelationshipStage = 'stranger',
+): string {
+  const text =
+    stage === 'stranger'
+      ? greetings[period]
+      : relationshipGreetings[stage][period]
+  return `${firstLaunch ? 'はじめまして！' : ''}${text}`
 }
 
 /** Passive, short-lived greeting. Not an interaction or a behavior-completion event. */

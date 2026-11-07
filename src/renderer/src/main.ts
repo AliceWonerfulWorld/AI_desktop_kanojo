@@ -1,4 +1,5 @@
 import { PointerGesture } from '../../interaction/pointer-gesture'
+import { RelationshipModel } from '../../relationship/relationship'
 import { InteractionRenderer } from './interaction/interaction-renderer'
 import { timeContextAt } from '../../behavior/time-policy'
 import { createPowerLifecycle } from '../../behavior/power-lifecycle'
@@ -25,6 +26,8 @@ let renderer: CharacterRenderer
 let behavior: BehaviorEngine | undefined
 let removeBehaviorPreview: (() => void) | undefined
 let removePreview: (() => void) | undefined
+let removeRelationshipPreview: (() => void) | undefined
+let relationship = new RelationshipModel(browserBehaviorClock.now)
 
 function updateHitTest(x: number, y: number): void {
   lastPointer = { x, y }
@@ -79,10 +82,13 @@ async function initialize(): Promise<void> {
     greeting,
     browserBehaviorClock,
     Math.random,
-    (event) =>
+    (event) => {
+      relationship.recordInteraction()
       window.dispatchEvent(
         new CustomEvent('character-interaction', { detail: event }),
-      ),
+      )
+    },
+    () => relationship.getSnapshot().stage,
   )
   renderer = interactions
   gesture = new PointerGesture({
@@ -148,6 +154,7 @@ async function initialize(): Promise<void> {
     behavior?.dispose()
     removeBehaviorPreview?.()
     removePreview?.()
+    removeRelationshipPreview?.()
     renderer.dispose()
   })
   character.addEventListener('keydown', (event) => {
@@ -172,7 +179,11 @@ async function initialize(): Promise<void> {
   const displayGreeting = (firstLaunch: boolean): void => {
     publishTime()
     greeting?.show(
-      greetingFor(timeContextAt(localTime.now()).period, firstLaunch),
+      greetingFor(
+        timeContextAt(localTime.now()).period,
+        firstLaunch,
+        relationship.getSnapshot().stage,
+      ),
     )
   }
   behavior = createBehaviorRuntime(
@@ -209,16 +220,28 @@ async function initialize(): Promise<void> {
       { installCharacterPreview },
       { installBehaviorPreview },
       { installTimePreview },
+      { installRelationshipPreview },
     ] = await Promise.all([
       import('./character/preview'),
       import('./behavior/preview'),
       import('./behavior/time-preview'),
+      import('./interaction/relationship-preview'),
     ])
     if (disposed) return
     removePreview = installCharacterPreview(renderer)
     removeBehaviorPreview = installBehaviorPreview(behavior)
     removeTimePreview = installTimePreview(localTime, () =>
       displayGreeting(launchInfo.firstLaunch),
+    )
+    removeRelationshipPreview = installRelationshipPreview(
+      () => relationship.getSnapshot(),
+      (value) => {
+        const next = new RelationshipModel(browserBehaviorClock.now, value)
+        interactions?.cancelReaction()
+        relationship = next
+        return relationship.getSnapshot()
+      },
+      () => displayGreeting(false),
     )
   }
 }

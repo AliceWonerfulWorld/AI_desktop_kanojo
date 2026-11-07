@@ -34,6 +34,8 @@
 | [19-interaction-validation.md](19-interaction-validation.md) | クリックとドラッグの分離、行動別反応、連打抑制と検証 |
 
 ## 意思決定済み
+
+[MVP-07 親密度検証記録](20-relationship-validation.md): 段階別反応・加算抑制・開発用確認と保存境界。
 - 成人キャラクター1名のデスクトップ常駐アプリ
 - 自律的な生活が主役（A）、親密度の変化は補助（B）
 - 2D立ち絵、表情・行動差分を利用

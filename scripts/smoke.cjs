@@ -100,6 +100,7 @@ app.on('browser-window-created', (_event, window) => {
         previewType: typeof window.characterPreview,
         behaviorPreviewType: typeof window.behaviorPreview,
         timePreviewType: typeof window.timePreview,
+        relationshipPreviewType: typeof window.relationshipPreview,
         greeting: document.querySelector('#greeting').textContent,
         greetingPointerEvents: getComputedStyle(document.querySelector('#greeting')).pointerEvents,
         autonomousAction: document.querySelector('#character').dataset.action
@@ -123,6 +124,7 @@ app.on('browser-window-created', (_event, window) => {
         ),
       )
       assert.equal(state.timePreviewType, 'undefined')
+      assert.equal(state.relationshipPreviewType, 'undefined')
       assert.match(state.greeting, /はじめまして/)
       assert.equal(state.greetingPointerEvents, 'none')
       assert.deepEqual(

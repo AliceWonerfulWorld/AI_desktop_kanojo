@@ -11,7 +11,7 @@ export interface CharacterAsset {
   readonly expression: Expression
 }
 
-/** Exact pair → same expression at idle → action neutral → idle neutral. */
+/** Exact expression first; missing intimacy expressions use smile before neutral. */
 export function assetCandidates(
   state: CharacterVisualState,
   assets: readonly CharacterAsset[],
@@ -19,6 +19,12 @@ export function assetCandidates(
   const pairs: CharacterVisualState[] = [
     state,
     { action: 'idle', expression: state.expression },
+    ...(['shy', 'affectionate'].includes(state.expression)
+      ? ([
+          { action: state.action, expression: 'smile' },
+          { action: 'idle', expression: 'smile' },
+        ] as CharacterVisualState[])
+      : []),
     { action: state.action, expression: 'neutral' },
     { action: 'idle', expression: 'neutral' },
   ]
