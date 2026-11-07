@@ -27,7 +27,7 @@
 
 | [15-character-renderer-validation.md](15-character-renderer-validation.md) | PNG差分、描画API、アルファ判定と検証 |
 
-| [16-behavior-engine-validation.md](16-behavior-engine-validation.md) | 自律行動の継続時間・遷移・通知・停止復帰の検証 |
+| [17-behavior-engine-validation.md](17-behavior-engine-validation.md) | 自律行動の継続時間・遷移・通知・停止復帰の検証 |
 
 ## 意思決定済み
 - 成人キャラクター1名のデスクトップ常駐アプリ

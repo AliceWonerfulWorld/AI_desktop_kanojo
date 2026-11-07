@@ -112,4 +112,4 @@ interface PersistedState {
 - 予約は単発1個に限定し、停止・一時停止・再開・解放で古いコールバックを無効化する。
 - Renderer の `behavior/runtime.ts` が意味上の行動通知を共通描画APIへ変換する。会話・アニメーション用には `character-behavior` 通知を提供する。
 - 経過時間は単調時計。保存用UTC・時刻帯ポリシーとは分離し、時刻帯対応は #5 へ残す。
-- 詳細は [自律行動検証記録](16-behavior-engine-validation.md) を参照。
+- 詳細は [自律行動検証記録](17-behavior-engine-validation.md) を参照。

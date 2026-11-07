@@ -16,13 +16,13 @@
 
 会話添付の実ファイルはすべて **WebP / 572×1024px / RGB（不透明、アルファチャンネルなし）**。背景は見た目が白いが透過されていない。
 
-| 添付時の元ファイル名（厳密な表記） | 意味上の表情ID | 位置付け | 本番用に完成させるファイル名 | GitHub上の画像 |
-| --- | --- | --- | --- | --- |
-| `koharu_normal.webp` | `neutral` | 自然立ち・通常表情の基準 | `png/standing_neutral.png` | 未配置 |
-| `koharu_shy.webp` | `shy` | 照れの表情参考 | `png/standing_shy.png` | 未配置 |
-| `koharu_sleeping.webp` | `sleepy` | 眠そうな表情参考（全身睡眠ポーズではない） | `png/standing_sleepy.png` | 未配置 |
-| `koharu_suprising.webp` | `surprised` | 驚きの表情参考（元ファイル名に綴り違いあり） | `png/standing_surprised.png` | 未配置 |
-| `koharu_sweet.webp` | `affectionate` | 甘える表情参考 | `png/standing_affectionate.png` | 未配置 |
+| 添付時の元ファイル名（厳密な表記） | 意味上の表情ID | 位置付け                                     | 本番用に完成させるファイル名    | GitHub上の画像 |
+| ---------------------------------- | -------------- | -------------------------------------------- | ------------------------------- | -------------- |
+| `koharu_normal.webp`               | `neutral`      | 自然立ち・通常表情の基準                     | `png/standing_neutral.png`      | 未配置         |
+| `koharu_shy.webp`                  | `shy`          | 照れの表情参考                               | `png/standing_shy.png`          | 未配置         |
+| `koharu_sleeping.webp`             | `sleepy`       | 眠そうな表情参考（全身睡眠ポーズではない）   | `png/standing_sleepy.png`       | 未配置         |
+| `koharu_suprising.webp`            | `surprised`    | 驚きの表情参考（元ファイル名に綴り違いあり） | `png/standing_surprised.png`    | 未配置         |
+| `koharu_sweet.webp`                | `affectionate` | 甘える表情参考                               | `png/standing_affectionate.png` | 未配置         |
 
 - `normal` はアプリ上の型 `neutral` に対応。
 - `sweet` はアプリ上の型 `affectionate` に対応。
@@ -67,17 +67,17 @@ assets/character/
 
 ## 5. 生成・利用の記録（未確定部分は未確認と明記）
 
-| 項目 | 記録 |
-| --- | --- |
-| 画像生成サービス | Gemini（ユーザー申告） |
-| 画像生成モデル/バージョン | 未確認 |
-| 生成日 | 未確認（会話への添付: 2026-11-07） |
-| マスター参照 | 小春の採用済みデザイン画像を参照したとの経緯 |
-| 商用利用条件 | 未確認（販売前に正式確認） |
-| 成人向け作品での使用条件 | 未確認 |
-| 利用先 | macOS先行・Windows将来対応のデスクトップ常駐アプリ |
-| 配布先 | DLsite販売を検討。AI利用作品区分は審査時の最新規約を確認 |
-| GitHubの利用許諾 | 画像については未確定。テスト画像のMITライセンスを流用しない |
+| 項目                      | 記録                                                        |
+| ------------------------- | ----------------------------------------------------------- |
+| 画像生成サービス          | Gemini（ユーザー申告）                                      |
+| 画像生成モデル/バージョン | 未確認                                                      |
+| 生成日                    | 未確認（会話への添付: 2026-11-07）                          |
+| マスター参照              | 小春の採用済みデザイン画像を参照したとの経緯                |
+| 商用利用条件              | 未確認（販売前に正式確認）                                  |
+| 成人向け作品での使用条件  | 未確認                                                      |
+| 利用先                    | macOS先行・Windows将来対応のデスクトップ常駐アプリ          |
+| 配布先                    | DLsite販売を検討。AI利用作品区分は審査時の最新規約を確認    |
+| GitHubの利用許諾          | 画像については未確定。テスト画像のMITライセンスを流用しない |
 
 ## 6. Codex / 画像制作用AIの責任分界
 

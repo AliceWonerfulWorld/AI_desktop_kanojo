@@ -36,7 +36,7 @@ npm run start
 
 開発時の表情・行動切替は [描画検証記録](docs/15-character-renderer-validation.md) の Console 手順を使用します。本番の固定操作UIは追加しません。素材の出典・権利・制作状態は [素材台帳](assets/character/manifest.md) に記録しています。
 
-自律動作の通知・一時停止・再開の確認は [行動エンジン検証記録](docs/16-behavior-engine-validation.md) を参照してください。画像だけの手動切替前には `behaviorPreview.pause()` で自律遷移を一時停止します。
+自律動作の通知・一時停止・再開の確認は [行動エンジン検証記録](docs/17-behavior-engine-validation.md) を参照してください。画像だけの手動切替前には `behaviorPreview.pause()` で自律遷移を一時停止します。
 
 ## コマンド
 
