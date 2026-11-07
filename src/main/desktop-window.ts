@@ -183,7 +183,7 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
     drag = {
       cursor: screen.getCursorScreenPoint(),
       origin: window.getBounds(),
-      started: Date.now(),
+      started: performance.now(),
       moved: false,
     }
     updateMouse()
@@ -192,7 +192,7 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
   }
   function sampleDrag(): void {
     if (!drag) return
-    if (Date.now() - drag.started > 30000) {
+    if (performance.now() - drag.started > 30000) {
       stopDrag()
       return
     }

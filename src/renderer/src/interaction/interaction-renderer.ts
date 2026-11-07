@@ -111,6 +111,7 @@ export class InteractionRenderer implements CharacterRenderer {
     this.reaction = undefined
   }
   dispose(): void {
+    if (this.disposed) return
     this.clearReaction()
     this.disposed = true
     this.lastResponse.clear()

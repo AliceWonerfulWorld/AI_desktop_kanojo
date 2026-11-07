@@ -232,6 +232,88 @@ app.on('browser-window-created', (_event, window) => {
         'opaque PNG pixels keep the context menu',
       )
 
+      // Exercise the real Renderer pointer handlers before any click cooldown can mask a drag.
+      await window.webContents.executeJavaScript(`{
+        window.__interactions = [];
+        addEventListener('character-interaction', event => window.__interactions.push(event.detail));
+      }`)
+      window.show()
+      window.focus()
+      window.webContents.focus()
+      await waitFor(() => window.isFocused())
+      const nativeCursor = screen.getCursorScreenPoint
+      const inputOrigin = window.getBounds()
+      let inputCursor = { x: inputOrigin.x + 170, y: inputOrigin.y + 312 }
+      screen.getCursorScreenPoint = () => inputCursor
+      const pauseInput = () => new Promise((resolve) => setTimeout(resolve, 60))
+      const mouse = (type, x, y, button = 'left') =>
+        window.webContents.sendInputEvent({ type, x, y, button, clickCount: 1 })
+      const countInteractions = () =>
+        window.webContents.executeJavaScript('window.__interactions.length')
+      const press = async (x, y, button = 'left', expectDrag = false) => {
+        window.setIgnoreMouseEvents(false)
+        mouse('mouseMove', x, y, button)
+        const before = dragMessages
+        mouse('mouseDown', x, y, button)
+        if (expectDrag) await waitFor(() => dragMessages > before)
+        else await pauseInput()
+      }
+      await press(10, 10)
+      mouse('mouseUp', 10, 10)
+      await pauseInput()
+      assert.equal(
+        await countInteractions(),
+        0,
+        'transparent pixels do not interact',
+      )
+      await press(170, 312, 'left', true)
+      inputCursor = { x: inputCursor.x + 30, y: inputCursor.y + 20 }
+      mouse('mouseMove', 200, 332)
+      mouse('mouseUp', 200, 332)
+      await pauseInput()
+      assert.equal(
+        await countInteractions(),
+        0,
+        'drag release does not interact',
+      )
+      await press(170, 312, 'left', true)
+      await window.webContents.executeJavaScript(
+        "dispatchEvent(new Event('blur'))",
+      )
+      mouse('mouseUp', 170, 312)
+      await pauseInput()
+      assert.equal(
+        await countInteractions(),
+        0,
+        'cancelled pointer does not interact',
+      )
+      await press(170, 312, 'right')
+      mouse('mouseUp', 170, 312, 'right')
+      await pauseInput()
+      assert.equal(await countInteractions(), 0, 'right click is menu-only')
+      await press(170, 312, 'left', true)
+      mouse('mouseUp', 170, 312)
+      await waitFor(async () => (await countInteractions()) === 1)
+      for (let i = 0; i < 3; i++) {
+        await press(170, 312, 'left', true)
+        mouse('mouseUp', 170, 312)
+        await pauseInput()
+      }
+      assert.equal(
+        await countInteractions(),
+        1,
+        'rapid clicks do not multiply reactions',
+      )
+      assert.ok(
+        (
+          await window.webContents.executeJavaScript(
+            "document.querySelector('#greeting').textContent",
+          )
+        ).length > 0,
+      )
+      screen.getCursorScreenPoint = nativeCursor
+      window.setBounds(inputOrigin)
+
       const originalCursor = screen.getCursorScreenPoint
       const beforeDrag = window.getBounds()
       const areaForDrag = screen.getDisplayMatching(beforeDrag).workArea
@@ -260,6 +342,20 @@ app.on('browser-window-created', (_event, window) => {
         window.getBounds(),
         afterDrag,
         'pointer release stops movement',
+      )
+      await ipc('desktop:drag', 'window.desktop.setDragging(true)')
+      cursor = { x: cursor.x + 20, y: cursor.y }
+      assert.equal(
+        await window.webContents.executeJavaScript(
+          'window.desktop.finishDrag()',
+        ),
+        'drag',
+      )
+      assert.equal(
+        await window.webContents.executeJavaScript(
+          'window.desktop.finishDrag()',
+        ),
+        'cancelled',
       )
       screen.getCursorScreenPoint = originalCursor
 
