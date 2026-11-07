@@ -26,15 +26,26 @@ app.on('browser-window-created', (_event, window) => {
         bubble.hidden = false;
         const style = getComputedStyle(bubble);
         const status = getComputedStyle(document.querySelector('#status'));
+        const anchor = bubble.parentElement;
+        const longBottom = bubble.getBoundingClientRect().bottom;
+        const longText = bubble.textContent;
+        bubble.textContent = 'やっほー！';
+        const shortBottom = bubble.getBoundingClientRect().bottom;
+        bubble.hidden = true;
+        const hiddenTail = getComputedStyle(anchor, '::after').content;
+        bubble.hidden = false;
+        bubble.textContent = longText;
         return {
-          position: style.position, background: style.backgroundColor,
+          position: getComputedStyle(anchor).position, background: style.backgroundColor,
           pointerEvents: style.pointerEvents, radius: style.borderRadius,
           statusWidth: status.width, overflow: getComputedStyle(document.body).overflow,
           top: bubble.getBoundingClientRect().top,
           bottom: bubble.getBoundingClientRect().bottom, height: innerHeight,
           characterTop: document.querySelector('#character').getBoundingClientRect().top,
           characterHeight: document.querySelector('#character').getBoundingClientRect().height,
-          clipped: bubble.scrollHeight > bubble.clientHeight
+          clipped: bubble.scrollHeight > bubble.clientHeight,
+          longBottom, shortBottom, hiddenTail,
+          tail: getComputedStyle(anchor, '::after').borderTopWidth
         };
       })()`)
       assert.equal(styles.position, 'absolute')
@@ -45,9 +56,21 @@ app.on('browser-window-created', (_event, window) => {
       assert.equal(styles.overflow, 'hidden')
       assert.ok(styles.top >= 0 && styles.bottom <= styles.height)
       assert.ok(
-        styles.bottom + 12 <= styles.characterTop,
+        styles.bottom + 6 <= styles.characterTop,
         'dialogue must stay above the entire character area',
       )
+      assert.equal(
+        styles.characterTop - styles.bottom,
+        6,
+        'bubble must stay close to the head',
+      )
+      assert.equal(
+        styles.longBottom,
+        styles.shortBottom,
+        'short and long dialogue must share the same anchor',
+      )
+      assert.equal(styles.tail, '10px')
+      assert.equal(styles.hiddenTail, 'none')
       assert.equal(styles.characterTop, 112)
       assert.equal(styles.characterHeight, styles.height - 112)
       assert.equal(styles.clipped, false, 'three-line dialogue should fit')

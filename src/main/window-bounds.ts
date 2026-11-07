@@ -25,10 +25,10 @@ export function initialBounds(area: Bounds): Bounds {
   return fitToWorkArea(
     {
       x: area.x + area.width - 340 - 24,
-      y: area.y + area.height - 632 - 24,
+      y: area.y + area.height - 580 - 24,
       width: 340,
-      // Preserve the 520 DIP character area and reserve 112 DIP for dialogue above it.
-      height: 632,
+      // Compact window with a reserved dialogue area above the character.
+      height: 580,
     },
     area,
   )

@@ -53,14 +53,28 @@ body.dragging #character {
   white-space: nowrap;
 }
 
-.greeting {
+.dialogue {
   position: absolute;
-  top: 12px;
+  bottom: calc(100% - var(--dialogue-height) + 6px);
   left: 50%;
   transform: translateX(-50%);
-  box-sizing: border-box;
   width: max-content;
   max-width: min(240px, calc(100% - 24px));
+  pointer-events: none;
+}
+.dialogue:has(.greeting:not([hidden]))::after {
+  content: '';
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 10px solid #f7f4f0;
+}
+.greeting {
+  box-sizing: border-box;
+  max-width: 100%;
   max-height: calc(var(--dialogue-height) - 24px);
   overflow: hidden;
   margin: 0;
