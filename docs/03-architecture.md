@@ -113,3 +113,9 @@ interface PersistedState {
 - Renderer の `behavior/runtime.ts` が意味上の行動通知を共通描画APIへ変換する。会話・アニメーション用には `character-behavior` 通知を提供する。
 - 経過時間は単調時計。保存用UTC・時刻帯ポリシーとは分離し、時刻帯対応は #5 へ残す。
 - 詳細は [自律行動検証記録](17-behavior-engine-validation.md) を参照。
+
+## 10. 時間帯と挨拶（MVP-05）
+- `time-policy.ts` は現地時刻から時間帯別重みを返す。BehaviorEngine は選択時にポリシーを再取得し、継続時間は引き続き単調時計で扱う。
+- 起動挨拶は会話/描画側に分離。Main の空の初回マーカーだけを読み、交流時間や未起動時間を推定しない。
+- Main の powerMonitor 通知を最小限の Preload API で配信し、Renderer が一時停止・復帰を管理する。
+- スリープ通知の限界と模擬時刻テストは [時間帯検証記録](18-time-policy-validation.md) を参照。

@@ -19,7 +19,9 @@ npm run dev
 
 透明領域のクリック透過は試験機能です。キャラの操作が戻らない場合は、トレイから透過を OFF にするか非表示にしてください。[検証結果・制限・Windows 手動確認手順](docs/13-desktop-window-validation.md) を参照してください。
 
-起動後は待機・読書・休憩・睡眠を自律的に切り替えます。継続時間は20〜300秒の範囲で、専用画像がない行動は既存PNGへ代替表示します。実時間5分で複数遷移する保証はありません。時刻帯別の行動選択は Issue #5 で対応します。
+起動後は待機・読書・休憩・睡眠を自律的に切り替えます。継続時間は20〜300秒の範囲で、専用画像がない行動は既存PNGへ代替表示します。実時間5分で複数遷移する保証はありません。端末の現地時刻で朝・昼・夜・深夜の行動重みを変え、深夜のみ睡眠継続を許可します。起動時には初回判定と時間帯に応じた挨拶が約5秒表示されます。
+
+初回判定は userData 内の空の `welcome-seen.marker` だけを保持し、未起動期間を交流時間として記録しません。時計変更は次回選択から反映し、進行中の行動は中断しません。
 
 設定はセッション内で保持します。専用設定画面は #9、位置や設定の再起動後の復元は #8 で対応します。ウィンドウを閉じると非表示になり、トレイの「終了」でプロセスを終了できます。同時起動は既存ウィンドウを再表示します。
 
@@ -37,6 +39,8 @@ npm run start
 開発時の表情・行動切替は [描画検証記録](docs/15-character-renderer-validation.md) の Console 手順を使用します。本番の固定操作UIは追加しません。素材の出典・権利・制作状態は [素材台帳](assets/character/manifest.md) に記録しています。
 
 自律動作の通知・一時停止・再開の確認は [行動エンジン検証記録](docs/17-behavior-engine-validation.md) を参照してください。画像だけの手動切替前には `behaviorPreview.pause()` で自律遷移を一時停止します。
+
+時間帯・挨拶の確認には開発用 `timePreview.setLocalTime(...)` を使用できます。OS時計は変更しません。[模擬時刻の手順・スリープ復帰・未確認事項](docs/18-time-policy-validation.md) を参照してください。
 
 ## コマンド
 
@@ -64,7 +68,7 @@ src/renderer/   HTML / CSS / TypeScript の UI
 src/shared/     プロセス間で共有する型と IPC チャンネル
 ```
 
-`nodeIntegration: false`、`contextIsolation: true`、`sandbox: true` を維持します。Renderer は Node.js / Electron を直接 import せず、型付きの `window.desktop` を利用します。バージョン情報と、入力領域・ドラッグ開始/終了・メニュー表示のみ公開します。Main は送信元と引数を検証し、座標を Renderer から受け取りません。
+`nodeIntegration: false`、`contextIsolation: true`、`sandbox: true` を維持します。Renderer は Node.js / Electron を直接 import せず、型付きの `window.desktop` を利用します。バージョン情報、初回判定の読取、限定したスリープ通知、入力領域・ドラッグ開始/終了・メニュー表示を公開します。Main は送信元と引数を検証し、座標を Renderer から受け取りません。
 
 追加ウィンドウ・ページ遷移を拒否し、CSP でスクリプトの読込元を制限します。WebSocket の localhost 許可は HMR 用です。[技術設計](docs/03-architecture.md) と [ロードマップ](docs/05-roadmap.md) も参照してください。
 
