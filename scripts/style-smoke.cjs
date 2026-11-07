@@ -22,7 +22,7 @@ app.on('browser-window-created', (_event, window) => {
     try {
       const styles = await window.webContents.executeJavaScript(`(() => {
         const bubble = document.querySelector('#greeting');
-        bubble.textContent = 'クリック反応の表示確認';
+        bubble.textContent = 'はじめまして！こんばんは！今日もお疲れさま。一緒にのんびりしようね。';
         bubble.hidden = false;
         const style = getComputedStyle(bubble);
         const status = getComputedStyle(document.querySelector('#status'));
@@ -31,7 +31,10 @@ app.on('browser-window-created', (_event, window) => {
           pointerEvents: style.pointerEvents, radius: style.borderRadius,
           statusWidth: status.width, overflow: getComputedStyle(document.body).overflow,
           top: bubble.getBoundingClientRect().top,
-          bottom: bubble.getBoundingClientRect().bottom, height: innerHeight
+          bottom: bubble.getBoundingClientRect().bottom, height: innerHeight,
+          characterTop: document.querySelector('#character').getBoundingClientRect().top,
+          characterHeight: document.querySelector('#character').getBoundingClientRect().height,
+          clipped: bubble.scrollHeight > bubble.clientHeight
         };
       })()`)
       assert.equal(styles.position, 'absolute')
@@ -41,6 +44,13 @@ app.on('browser-window-created', (_event, window) => {
       assert.equal(styles.statusWidth, '1px')
       assert.equal(styles.overflow, 'hidden')
       assert.ok(styles.top >= 0 && styles.bottom <= styles.height)
+      assert.ok(
+        styles.bottom + 12 <= styles.characterTop,
+        'dialogue must stay above the entire character area',
+      )
+      assert.equal(styles.characterTop, 112)
+      assert.equal(styles.characterHeight, styles.height - 112)
+      assert.equal(styles.clipped, false, 'three-line dialogue should fit')
       if (server) {
         for (let attempt = 0; attempt < 150; attempt++) {
           if (

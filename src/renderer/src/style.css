@@ -15,9 +15,15 @@ main {
 body {
   user-select: none;
 }
+main {
+  --dialogue-height: 112px;
+  position: relative;
+}
 #character {
+  position: absolute;
+  top: var(--dialogue-height);
   width: 100%;
-  height: 100%;
+  height: calc(100% - var(--dialogue-height));
   touch-action: none;
 }
 #character canvas {
@@ -55,7 +61,7 @@ body.dragging #character {
   box-sizing: border-box;
   width: max-content;
   max-width: min(240px, calc(100% - 24px));
-  max-height: calc(100% - 24px);
+  max-height: calc(var(--dialogue-height) - 24px);
   overflow: hidden;
   margin: 0;
   padding: 10px 14px;
