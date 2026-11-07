@@ -56,5 +56,8 @@
 - Electron上で指定モデルを安定描画し、背景透明を維持。
 - モデルの表情変化、まばたき、呼吸を確認。
 - PNG版の行動エンジン・セーブ形式を壊さない。
-- Windowsで負荷と操作性の測定結果を残す。
+- まずmacOS（Apple Silicon）で負荷と操作性の測定結果を残す。Windowsは別途実機検証する。
 - 販売に向けたライセンス課題をドキュメント化する。
+
+## 開発環境補足
+初回のCubism SDK for Web統合はMacBook Air（Apple Silicon / macOS）で検証する。macOS向けWebGL描画、透明ウィンドウ、クリック透過を確認し、Windowsでの動作は別途確認する。
