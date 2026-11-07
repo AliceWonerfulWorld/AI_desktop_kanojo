@@ -10,11 +10,67 @@
     <title>AI Desktop Kanojo</title>
   </head>
   <body>
-    <main>
-      <h1>AI Desktop Kanojo</h1>
-      <p>開発環境の準備ができました。</p>
-      <p id="status" role="status">Preload 接続を確認しています…</p>
-      <dl id="versions"></dl>
+    <main aria-label="デスクトップの仮キャラクター">
+      <div
+        id="character"
+        role="button"
+        tabindex="0"
+        aria-label="仮キャラクター。ドラッグで移動、右クリックでメニュー"
+        title="ドラッグで移動・右クリックでメニュー"
+      >
+        <!-- Original vector placeholder. Hit-test only painted SVG geometry. -->
+        <svg viewBox="0 0 340 520" aria-hidden="true">
+          <g data-hit>
+            <path
+              fill="#534358"
+              d="M109 179C96 74 239 72 234 180L245 304H96Z"
+            />
+            <path fill="#e5bbb0" d="M151 218H191V259H151Z" />
+            <ellipse fill="#f4d7c6" cx="170" cy="171" rx="50" ry="62" />
+            <path
+              fill="#534358"
+              d="M117 167C106 90 224 88 225 167L201 139L173 159L177 130L145 164L145 143Z"
+            />
+            <path
+              fill="#f7f4f0"
+              d="M149 245L128 257L110 326L122 414H219L230 326L211 257L191 245L170 261Z"
+            />
+            <path
+              fill="#d99aa7"
+              d="M132 255L113 267L90 349L109 356L140 283ZM207 255L226 267L249 349L230 356L199 283Z"
+            />
+            <path
+              fill="#f4d7c6"
+              d="M90 346L82 372Q82 391 97 384L109 353ZM230 353L243 384Q258 391 257 372L249 346Z"
+            />
+            <path
+              fill="#6b526e"
+              d="M123 387L110 450Q170 467 230 450L218 387Z"
+            />
+            <path
+              fill="#f4d7c6"
+              d="M134 455L136 493H155L158 458ZM182 458L185 493H204L206 455Z"
+            />
+            <path
+              fill="#534358"
+              d="M135 488L131 509H158L156 488ZM184 488L182 509H209L204 488Z"
+            />
+            <path fill="#d99aa7" d="M156 264L170 275L184 264L179 288H162Z" />
+            <g fill="#453448">
+              <ellipse cx="151" cy="178" rx="4" ry="6" />
+              <ellipse cx="188" cy="178" rx="4" ry="6" />
+            </g>
+            <path
+              d="M161 205Q170 211 180 205"
+              fill="none"
+              stroke="#b77580"
+              stroke-width="3"
+              stroke-linecap="round"
+            />
+          </g>
+        </svg>
+      </div>
+      <p id="status" class="visually-hidden" role="status">初期化中</p>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -1,23 +1,9 @@
 import { app, BrowserWindow, Menu } from 'electron'
 import { join } from 'node:path'
+import { createDesktopWindow } from './desktop-window'
 
 function createWindow(): void {
-  const window = new BrowserWindow({
-    width: 900,
-    height: 640,
-    minWidth: 480,
-    minHeight: 360,
-    show: false,
-    title: 'AI Desktop Kanojo',
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-    },
-  })
-
-  window.once('ready-to-show', () => window.show())
+  const window = createDesktopWindow()
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', (event) => event.preventDefault())
   window.webContents.on('preload-error', (_event, path, error) => {
@@ -28,7 +14,7 @@ function createWindow(): void {
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    window.webContents.openDevTools({ mode: 'detach' })
+    // DevTools can change transparent-window composition; open explicitly from the tray.
     void window.loadURL(process.env.ELECTRON_RENDERER_URL).catch(console.error)
   } else {
     void window
@@ -37,29 +23,34 @@ function createWindow(): void {
   }
 }
 
-void app
-  .whenReady()
-  .then(() => {
-    Menu.setApplicationMenu(
-      Menu.buildFromTemplate([
-        ...(process.platform === 'darwin'
-          ? [{ role: 'appMenu' as const }]
-          : []),
-        { role: 'fileMenu' },
-        { role: 'viewMenu' },
-        { role: 'windowMenu' },
-      ]),
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    const window = BrowserWindow.getAllWindows().find(
+      (candidate) => candidate.getTitle() === 'AI Desktop Kanojo',
     )
-    createWindow()
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    window?.showInactive()
+  })
+  void app
+    .whenReady()
+    .then(() => {
+      Menu.setApplicationMenu(
+        process.platform === 'darwin'
+          ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'viewMenu' }])
+          : null,
+      )
+      createWindow()
+      app.on('activate', () => {
+        const window = BrowserWindow.getAllWindows()[0]
+        if (window) window.showInactive()
+        else createWindow()
+      })
     })
-  })
-  .catch((error: unknown) => {
-    console.error('Application startup failed', error)
-    app.quit()
-  })
+    .catch((error: unknown) => {
+      console.error('Application startup failed', error)
+      app.quit()
+    })
+}
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+app.on('window-all-closed', () => app.quit())
