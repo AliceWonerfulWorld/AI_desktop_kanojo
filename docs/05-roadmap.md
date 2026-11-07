@@ -24,8 +24,8 @@
 
 ## 4. 常用性とデモ完成
 - [#9 設定・邪魔しないモード](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues/9)
-- [#10 Windowsビルド・テスト](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues/10)
-- トレイ終了、デモ動作、README、実機テストを確認。
+- [#10 macOSビルド・テスト](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues/10)
+- macOSメニューバー・終了、デモ動作、README、Apple Silicon実機テストを確認。
 
 ## 5. MVP後・販売準備
 - [#11 イラスト・動作・会話を拡充](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues/11)
@@ -45,10 +45,15 @@
 
 ## リリース判断
 - ハッカソン: デモ可能なMVPを優先。
-- DLsite: 素材の商用権利、審査基準、Windows配布の品質確認後に公開。
+- DLsite: 素材の商用権利、審査基準、対応OS別の配布品質確認後に公開。
 
 ## Live2D優先拡張（目標）
 - [#15 Cubism SDK for Web 技術検証](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues/15)
 - [#16 Live2D描画アダプターと自律行動統合](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues/16)
 - PNGのMVPを壊さない。SDK・モデルのライセンス確認、透明描画とクリック透過、実機での描画負荷を検証。
 - 詳細は [Live2D導入計画](09-live2d-plan.md) を参照。
+
+## 対応OSの方針
+- 開発・最初のMVP検証: macOS（Apple Silicon / MacBook Air）。
+- Windows: OS固有のウィンドウ操作と配布物を別の環境で検証してから対応表記する。
+- 共通ロジック・UI・Live2D描画を可能な限り共有する。

@@ -18,22 +18,27 @@
 | [07-ui-ux.md](07-ui-ux.md) | 参考記事を踏まえたUI/UX方針・2モード・操作導線 |
 | [08-screen-layouts.md](08-screen-layouts.md) | 日常・設定・交流画面のワイヤーフレーム案 |
 | [09-live2d-plan.md](09-live2d-plan.md) | Live2D技術検証と段階的な導入計画 |
+| [10-character-profile.md](10-character-profile.md) | 小春（仮）のキャラ設定、性格・生活・関係性 |
+| [11-ai-character-generation.md](11-ai-character-generation.md) | AI画像生成用の指示、品質管理、Live2D加工工程 |
+| [12-character-assets.md](12-character-assets.md) | PNG/PSD/Live2D用の素材一覧と優先度 |
 
 ## 意思決定済み
 - 成人キャラクター1名のデスクトップ常駐アプリ
 - 自律的な生活が主役（A）、親密度の変化は補助（B）
 - 2D立ち絵、表情・行動差分を利用
-- Windows向けMVPを優先
+- メインキャラは明るく元気、親密になると甘える一面を見せる、華奢で色白の成人女性
+- キャラ原画はAI画像生成を使用する方針（本番素材の生成・採用・商用規約確認は今後）
+- MacBook Air（Apple Silicon / macOS）でMVPを先行開発し、Windows対応は後段で検証
 - 初期技術候補: Electron + TypeScript
 - ローカル保存・オフライン優先
 - 成人向け表現はユーザーの明示操作で表示する方向
 
 ## 未決定
-- 正式な製品名、キャラクターの設定・デザイン
+- 正式な製品名、キャラクター名・外見デザインの最終決定
 - ハッカソンの日程・チーム人数・審査基準
-- PNG差分を中心にするか、Live2Dを本格採用するか
+- 正式なLive2D制作範囲と使用する画像生成AI・モデル
 - 音声・AI会話の搭載範囲と費用
-- 正式な販売価格・対応OSの追加範囲
+- 正式な販売価格・Windows配布の優先度・検証環境
 
 ## 開発管理
 [GitHub Issues](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues) で実装タスクを管理します。仕様変更時は関連ドキュメントとIssueを更新してください。
