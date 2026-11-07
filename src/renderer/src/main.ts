@@ -1,4 +1,3 @@
-import './style.css'
 import { PointerGesture } from '../../interaction/pointer-gesture'
 import { InteractionRenderer } from './interaction/interaction-renderer'
 import { timeContextAt } from '../../behavior/time-policy'
