@@ -16,6 +16,8 @@
 | [05-roadmap.md](05-roadmap.md) | 実装順・Issue対応・完了基準 |
 | [06-release-checklist.md](06-release-checklist.md) | DLsite販売に向けた確認事項 |
 | [07-ui-ux.md](07-ui-ux.md) | 参考記事を踏まえたUI/UX方針・2モード・操作導線 |
+| [08-screen-layouts.md](08-screen-layouts.md) | 日常・設定・交流画面のワイヤーフレーム案 |
+| [09-live2d-plan.md](09-live2d-plan.md) | Live2D技術検証と段階的な導入計画 |
 
 ## 意思決定済み
 - 成人キャラクター1名のデスクトップ常駐アプリ
@@ -35,3 +37,6 @@
 
 ## 開発管理
 [GitHub Issues](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues) で実装タスクを管理します。仕様変更時は関連ドキュメントとIssueを更新してください。
+
+## Codexでの実装
+リポジトリルートの [AGENTS.md](../AGENTS.md) を確認し、各Issueを受け入れ条件まで実装してください。
