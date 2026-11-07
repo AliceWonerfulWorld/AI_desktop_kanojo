@@ -8,6 +8,8 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         require: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
         console: 'readonly',
         process: 'readonly',
         setTimeout: 'readonly',
