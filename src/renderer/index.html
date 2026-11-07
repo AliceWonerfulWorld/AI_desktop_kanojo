@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-src 'none'"
+    />
+    <title>AI Desktop Kanojo</title>
+  </head>
+  <body>
+    <main>
+      <h1>AI Desktop Kanojo</h1>
+      <p>開発環境の準備ができました。</p>
+      <p id="status" role="status">Preload 接続を確認しています…</p>
+      <dl id="versions"></dl>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
