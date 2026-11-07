@@ -1,4 +1,6 @@
 import './style.css'
+import { createBehaviorRuntime } from './behavior/runtime'
+import type { BehaviorEngine } from '../../behavior/behavior-engine'
 import { characterAssets } from './character/assets'
 import { PngCharacterRenderer } from './character/png-renderer'
 import type { CharacterRenderer, RenderResult } from './character/renderer'
@@ -9,6 +11,8 @@ let activePointer: number | undefined
 let interactive: boolean | undefined
 let lastPointer: { x: number; y: number } | undefined
 let renderer: CharacterRenderer
+let behavior: BehaviorEngine | undefined
+let removeBehaviorPreview: (() => void) | undefined
 let removePreview: (() => void) | undefined
 
 function updateHitTest(x: number, y: number): void {
@@ -79,6 +83,8 @@ async function initialize(): Promise<void> {
   window.addEventListener('blur', () => stopDrag())
   window.addEventListener('pagehide', () => {
     stopDrag()
+    behavior?.dispose()
+    removeBehaviorPreview?.()
     removePreview?.()
     renderer.dispose()
   })
@@ -94,9 +100,18 @@ async function initialize(): Promise<void> {
     }
   })
   await renderer.setState({ action: 'idle', expression: 'neutral' })
+  behavior = createBehaviorRuntime(renderer, (event) => {
+    character.dataset.action = event.snapshot.current?.action ?? ''
+    window.dispatchEvent(
+      new CustomEvent('character-behavior', { detail: event }),
+    )
+  })
+  behavior.start()
   if (import.meta.env.DEV) {
     const { installCharacterPreview } = await import('./character/preview')
     removePreview = installCharacterPreview(renderer)
+    const { installBehaviorPreview } = await import('./behavior/preview')
+    removeBehaviorPreview = installBehaviorPreview(behavior)
   }
 }
 
