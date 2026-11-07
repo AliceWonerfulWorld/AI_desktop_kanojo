@@ -110,9 +110,9 @@ app.on('browser-window-created', (_event, window) => {
           '75%',
         )
         await update('#spontaneous', false)
-        assert.equal(
-          await evaluate("document.querySelector('#greeting').hidden"),
-          true,
+        // Settings and character are separate renderers; wait for the broadcast to apply.
+        await waitFor(() =>
+          evaluate("document.querySelector('#greeting').hidden"),
         )
         window.show()
         window.focus()
