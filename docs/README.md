@@ -22,6 +22,8 @@
 | [11-ai-character-generation.md](11-ai-character-generation.md) | AI画像生成用の指示、品質管理、Live2D加工工程 |
 | [12-character-assets.md](12-character-assets.md) | PNG/PSD/Live2D用の素材一覧と優先度 |
 | [14-koharu-master-design.md](14-koharu-master-design.md) | 承認済み小春マスタービジュアルと通常・照れ・甘えの仕様 |
+| [15-codex-asset-integration.md](15-codex-asset-integration.md) | Codexへの正式小春素材統合指示・検証条件 |
+| [16-gemini-live2d-parts-prompt.md](16-gemini-live2d-parts-prompt.md) | Geminiに送るPSDパーツ分け設計・生成プロンプト |
 
 | [15-character-renderer-validation.md](15-character-renderer-validation.md) | PNG差分、描画API、アルファ判定と検証 |
 
@@ -44,6 +46,8 @@
 - 正式なLive2D制作範囲と使用する画像生成AI・モデル
 - 音声・AI会話の搭載範囲と費用
 - 正式な販売価格・Windows配布の優先度・検証環境
+
+小春の5枚のWebP原画（通常・照れ・眠そう・驚き・甘え）は受領済みで、リポジトリへの画像登録・背景透過は未実施。詳細は [小春素材台帳](../assets/character/koharu/manifest.md)。
 
 ## 開発管理
 [GitHub Issues](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues) で実装タスクを管理します。仕様変更時は関連ドキュメントとIssueを更新してください。
