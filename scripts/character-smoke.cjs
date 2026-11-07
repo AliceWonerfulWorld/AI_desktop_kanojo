@@ -8,7 +8,7 @@ const timeout = setTimeout(() => {
 }, 30000)
 
 void (async () => {
-  const { createServer } = await import('vite')
+  const { createServer, normalizePath } = await import('vite')
   const server = await createServer({
     configFile: false,
     root: join(__dirname, '../src/renderer'),
@@ -47,6 +47,9 @@ void (async () => {
     const { installCharacterPreview } = await import('/src/character/preview.ts')
     const { createBehaviorRuntime } = await import('/src/behavior/runtime.ts')
     const { installBehaviorPreview } = await import('/src/behavior/preview.ts')
+    const { timeContextAt } = await import(${JSON.stringify('/@fs/' + normalizePath(join(__dirname, '../src/behavior/time-policy.ts')))})
+    const { installTimePreview } = await import('/src/behavior/time-preview.ts')
+    const { GreetingPresenter, greetingFor } = await import('/src/dialogue/greeting.ts')
     const host = document.createElement('div')
     host.style.cssText = 'position:fixed;left:0;top:0;width:340px;height:520px'
     document.body.append(host)
@@ -121,6 +124,38 @@ void (async () => {
     window.behaviorPreview.resume(); window.behaviorPreview.resume();
     const resumedTimers = clock.tasks.size;
     removeBehavior(); runtime.dispose();
+    const timeSource = { now: () => new Date() };
+    const liveNow = timeSource.now;
+    const greetingView = document.createElement('p');
+    host.append(greetingView);
+    const greeting = new GreetingPresenter(greetingView, clock);
+    const removeTime = installTimePreview(timeSource, () => greeting.show(greetingFor(timeContextAt(timeSource.now()).period, false)));
+    const timeRenders = [];
+    const timedEngine = createBehaviorRuntime({
+      setState(state) { const task = renderer.setState(state); timeRenders.push(task); return task },
+      hitTest: (x,y) => renderer.hitTest(x,y), dispose: () => renderer.dispose(),
+    }, () => {}, { clock, random: () => 0.4, selectionPolicy: () => timeContextAt(timeSource.now()) });
+    const periods = [];
+    for (const hour of ['08','12','20','01']) {
+      window.timePreview.setLocalTime('2026-11-07T' + hour + ':00:00');
+      timedEngine.stop(); timedEngine.start();
+      const frames = await Promise.all(timeRenders.splice(0));
+      periods.push({ period: window.timePreview.getState().period, greeting: greetingView.textContent, hidden:greetingView.hidden, action:frames.at(-1).state.action });
+    }
+    const beforeTimeJump = timedEngine.getSnapshot().remainingMs;
+    window.timePreview.setLocalTime('2099-01-01T23:00:00');
+    window.timePreview.setLocalTime('2000-01-01T01:00:00');
+    const afterTimeJump = timedEngine.getSnapshot().remainingMs;
+    let rejectedBadTime = false;
+    try { window.timePreview.setLocalTime('invalid') } catch { rejectedBadTime = true }
+    const validPeriodAfterBadTime = window.timePreview.getState().period;
+    clock.advance(5000);
+    const greetingExpired = greetingView.hidden;
+    window.timePreview.reset();
+    const resetLiveTime = timeSource.now === liveNow;
+    removeTime(); greeting.dispose(); timedEngine.dispose();
+    const timeCleanedUp = typeof window.timePreview === 'undefined' && clock.tasks.size === 0;
+    greetingView.remove();
     const disposedTimers = clock.tasks.size;
     const behaviorPreviewAfter = typeof window.behaviorPreview;
     remove()
@@ -131,7 +166,7 @@ void (async () => {
     pendingRenderer.dispose()
     const disposedDuringLoad = await pending
     const afterDispose = await renderer.setState({action:'idle',expression:'smile'})
-    return {behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
+    return {periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
   })()`)
   assert.equal(
     new Set(results.snapshots.slice(0, 4).map((entry) => entry.pixels)).size,
@@ -182,6 +217,19 @@ void (async () => {
   assert.equal(results.resumedTimers, 1)
   assert.equal(results.disposedTimers, 0)
   assert.equal(results.behaviorPreviewAfter, 'undefined')
+  assert.deepEqual(
+    results.periods.map((entry) => entry.period),
+    ['morning', 'daytime', 'evening', 'late-night'],
+  )
+  assert.equal(new Set(results.periods.map((entry) => entry.greeting)).size, 4)
+  assert.ok(results.periods.every((entry) => !entry.hidden))
+  assert.equal(results.periods.at(-1).action, 'sleeping')
+  assert.equal(results.beforeTimeJump, results.afterTimeJump)
+  assert.equal(results.rejectedBadTime, true)
+  assert.equal(results.validPeriodAfterBadTime, 'late-night')
+  assert.equal(results.greetingExpired, true)
+  assert.equal(results.resetLiveTime, true)
+  assert.equal(results.timeCleanedUp, true)
   assert.equal(results.disposedDuringLoad.applied, false)
   assert.equal(results.disposedHit, false)
   assert.equal(results.afterDispose.applied, false)
