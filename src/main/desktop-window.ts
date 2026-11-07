@@ -28,6 +28,7 @@ export function createDesktopWindow(): {
     fullscreenable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
+    acceptFirstMouse: true,
     show: false,
     title: 'AI Desktop Kanojo',
     webPreferences: {

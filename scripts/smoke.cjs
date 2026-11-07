@@ -10,6 +10,16 @@ async function waitFor(condition) {
   assert.ok(condition(), 'Native window visibility did not settle')
 }
 
+let completed = false
+app.on('will-quit', () => {
+  if (!completed) {
+    console.error(
+      'Smoke check did not complete. Close the running app before testing.',
+    )
+    app.exit(1)
+  }
+})
+
 let menu
 let tray
 const originalSetContextMenu = Tray.prototype.setContextMenu
@@ -153,6 +163,7 @@ app.on('browser-window-created', (_event, window) => {
       console.log(
         'Smoke check passed: secure transparent renderer, hit regions, IPC, tray menus, recovery',
       )
+      completed = true
       clearTimeout(timeout)
       // Exercise the real Quit path, including native tray and window cleanup.
       item('終了').click()

@@ -38,5 +38,7 @@
 ## 開発管理
 [GitHub Issues](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues) で実装タスクを管理します。仕様変更時は関連ドキュメントとIssueを更新してください。
 
+[MVP-02 検証記録](10-desktop-window-validation.md): 透明常駐・クリック透過・DPI の検証結果と制限。
+
 ## Codexでの実装
 リポジトリルートの [AGENTS.md](../AGENTS.md) を確認し、各Issueを受け入れ条件まで実装してください。
