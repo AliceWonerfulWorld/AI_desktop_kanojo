@@ -17,3 +17,7 @@
 素材追加時は manifest に ID・相対パス・意味上の行動/表情・状態を登録し、実際の出典、AI利用サービス/モデル、利用条件、権利確認日を記録する。異なる出典・ライセンスの素材は個別の記録を追加し、現在のテスト素材の MIT 条件を流用しない。本番利用の可否を確認できない素材や再配布禁止素材はコミットしない。
 
 `src/renderer/src/character/assets.ts` へ明示的な import と URL 登録を追加するとビルド対象になる。manifest の状態マッピングをコードへ読み込み、任意のファイルパスやネット URL は Renderer の公開 API で受け付けない。通常表情はコード上 `neutral` に統一し、デザイン資料の `normal` に対応させる。
+
+## 小春の本番候補について
+
+Geminiで生成された5枚のWebP画像が会話で受領済み（572×1024、RGB、白背景・非透過）。**GitHubには未配置**。本台帳の既存4枚のテストPNGとは別扱いにする。詳細は [koharu/manifest.md](koharu/manifest.md)。将来の素材統合に関するCodex指示は [docs/15-codex-asset-integration.md](../../docs/15-codex-asset-integration.md)。
