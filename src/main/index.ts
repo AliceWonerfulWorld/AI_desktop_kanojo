@@ -1,14 +1,70 @@
-import { app, Menu } from 'electron'
+import { app, Menu, dialog } from 'electron'
 import { join } from 'node:path'
 import { loadLaunchInfo } from './launch-info'
 import type { LaunchInfo } from '../shared/desktop-api'
 import { createDesktopWindow } from './desktop-window'
+import { MemoryStore } from './memory-store'
+import { MemorySession } from './memory-session'
+import { defaultMemory } from '../shared/memory-state'
 
 let launchInfo: LaunchInfo = { firstLaunch: false }
 let desktop: ReturnType<typeof createDesktopWindow> | undefined
+let memory: MemorySession
+let store: MemoryStore
+let saveTimer: ReturnType<typeof setTimeout> | undefined
+let checkpoint: ReturnType<typeof setInterval> | undefined
+let resetting = false
+let quitReady = false
+let quitPending = false
+let saveErrorShown = false
+let resetFinished: Promise<void> | undefined
+
+function saveError(error: unknown): void {
+  console.error('Memory save failed', error)
+  if (!saveErrorShown) {
+    saveErrorShown = true
+    dialog.showErrorBox(
+      '生活記憶を保存できません',
+      '保存先を確認してください。今回の変更は次回起動時に復元できない可能性があります。',
+    )
+  }
+}
+function persist(): void {
+  if (resetting || quitPending || saveTimer) return
+  saveTimer = setTimeout(() => {
+    saveTimer = undefined
+    void store.save(memory.snapshot()).catch(saveError)
+  }, 500)
+}
+async function resetMemory(): Promise<void> {
+  resetting = true
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = undefined
+  try {
+    await store.reset()
+    memory = new MemorySession(
+      defaultMemory(),
+      () => performance.now(),
+      new Date().toISOString(),
+    )
+    await store.save(memory.snapshot())
+    await loadLaunchInfo(app.getPath('userData'))
+    saveErrorShown = false
+  } finally {
+    resetting = false
+  }
+}
 
 function createWindow(): void {
-  desktop = createDesktopWindow(launchInfo)
+  desktop = createDesktopWindow(
+    launchInfo,
+    () => memory,
+    persist,
+    () => {
+      resetFinished = resetMemory()
+      return resetFinished
+    },
+  )
   const { window } = desktop
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', (event) => event.preventDefault())
@@ -37,6 +93,32 @@ if (!app.requestSingleInstanceLock()) {
     .whenReady()
     .then(async () => {
       launchInfo = await loadLaunchInfo(app.getPath('userData'))
+      store = new MemoryStore(app.getPath('userData'))
+      memory = new MemorySession(
+        await store.load(),
+        () => performance.now(),
+        new Date().toISOString(),
+      )
+      await store.save(memory.snapshot()).catch(saveError)
+      checkpoint = setInterval(persist, 30000)
+      app.on('before-quit', (event) => {
+        if (quitReady) return
+        event.preventDefault()
+        if (quitPending) return
+        quitPending = true
+        if (checkpoint) clearInterval(checkpoint)
+        if (saveTimer) clearTimeout(saveTimer)
+        void (async () => {
+          await resetFinished
+          memory.power(true)
+          await store.save(memory.snapshot())
+        })()
+          .catch(saveError)
+          .finally(() => {
+            quitReady = true
+            app.quit()
+          })
+      })
       Menu.setApplicationMenu(
         process.platform === 'darwin'
           ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'viewMenu' }])

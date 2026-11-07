@@ -47,6 +47,7 @@ export interface BehaviorOptions {
   readonly random?: () => number
   readonly rules?: BehaviorRules
   readonly onError?: (error: unknown) => void
+  readonly initialAction?: Action
 }
 
 /** No DOM, Electron, concrete dialogue, image paths, or animation implementation. */
@@ -63,9 +64,16 @@ export class BehaviorEngine {
   private cancel: (() => void) | undefined
   private generation = 0
   private sequence = 0
+  private initialAction: Action | undefined
 
   constructor(options: BehaviorOptions) {
     this.clock = options.clock
+    if (
+      options.initialAction !== undefined &&
+      !actions.includes(options.initialAction)
+    )
+      throw new RangeError('Invalid initial action')
+    this.initialAction = options.initialAction
     this.selectionPolicy = options.selectionPolicy
     this.random = options.random ?? Math.random
     this.onError = options.onError ?? console.error
@@ -128,7 +136,12 @@ export class BehaviorEngine {
     if (this.status === 'disposed')
       throw new Error('BehaviorEngine is disposed')
     if (this.status !== 'stopped') return
-    this.enter(this.selectionPolicy ? this.nextAction(null) : 'idle', 'started')
+    const initial = this.initialAction
+    this.initialAction = undefined
+    this.enter(
+      initial ?? (this.selectionPolicy ? this.nextAction(null) : 'idle'),
+      'started',
+    )
   }
 
   pause(): void {
