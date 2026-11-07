@@ -11,21 +11,23 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <main aria-label="デスクトップの仮キャラクター">
+    <main aria-label="デスクトップの小春">
       <div
         id="character"
         role="button"
         tabindex="0"
-        aria-label="テスト用画像（小春の正式素材ではありません）。ドラッグで移動、右クリックでメニュー"
+        aria-label="小春。ドラッグで移動、右クリックでメニュー"
         title="ドラッグで移動・右クリックでメニュー"
       ></div>
-      <p
-        id="greeting"
-        class="greeting"
-        role="status"
-        aria-live="polite"
-        hidden
-      ></p>
+      <div class="dialogue">
+        <p
+          id="greeting"
+          class="greeting"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></p>
+      </div>
       <p id="status" class="visually-hidden" role="status">初期化中</p>
     </main>
     <script type="module" src="/src/main.ts"></script>

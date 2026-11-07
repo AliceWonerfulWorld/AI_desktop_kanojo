@@ -53,7 +53,7 @@
 - 音声・AI会話の搭載範囲と費用
 - 正式な販売価格・Windows配布の優先度・検証環境
 
-小春の5枚のWebP原画（通常・照れ・眠そう・驚き・甘え）は受領済みで、リポジトリへの画像登録・背景透過は未実施。詳細は [小春素材台帳](../assets/character/koharu/manifest.md)。
+小春のWebP原画5枚とユーザー選定の透過PNG5枚は配置済み。Issue #22で通常ランタイムへ統合し、幾何図形はテスト専用に分離。公開・商用・成人向け配布条件と、実アプリの切替・輪郭の最終目視は未確認。詳細は [小春素材台帳](../assets/character/koharu/manifest.md) と [統合検証記録](21-koharu-integration-validation.md)。
 
 ## 開発管理
 [GitHub Issues](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues) で実装タスクを管理します。仕様変更時は関連ドキュメントとIssueを更新してください。

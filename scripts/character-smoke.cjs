@@ -43,7 +43,8 @@ void (async () => {
   await window.loadURL(`${server.resolvedUrls.local[0]}character-test`)
   const results = await window.webContents.executeJavaScript(`(async () => {
     const { PngCharacterRenderer } = await import('/src/character/png-renderer.ts')
-    const { characterAssets } = await import('/src/character/assets.ts')
+    const { testCharacterAssets: characterAssets } = await import('/src/character/test-assets.ts')
+    const { characterAssets: koharuAssets } = await import('/src/character/assets.ts')
     const { installCharacterPreview } = await import('/src/character/preview.ts')
     const { createBehaviorRuntime } = await import('/src/behavior/runtime.ts')
     const { installBehaviorPreview } = await import('/src/behavior/preview.ts')
@@ -196,6 +197,41 @@ void (async () => {
     staged.dispose();
     interactive.dispose(); reactionBubble.dispose(); reactionView.remove();
 
+    const koharuHost = document.createElement('div');
+    koharuHost.style.cssText = 'position:fixed;left:0;top:0;width:340px;height:520px';
+    document.body.append(koharuHost);
+    const koharuApplied = [];
+    const koharuRenderer = new PngCharacterRenderer(koharuHost, koharuAssets, result => koharuApplied.push(result));
+    const koharuFrames = [];
+    for (const expression of ['neutral','shy','sleepy','surprised','affectionate','smile']) {
+      const result = await koharuRenderer.setState({action:'idle',expression});
+      const canvas = koharuHost.querySelector('canvas');
+      const data = canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+      const bounds = [canvas.width,canvas.height,0,0];
+      for (let y=0;y<canvas.height;y++) for(let x=0;x<canvas.width;x++) if(data[(y*canvas.width+x)*4+3]>0) {
+        bounds[0]=Math.min(bounds[0],x);bounds[1]=Math.min(bounds[1],y);
+        bounds[2]=Math.max(bounds[2],x);bounds[3]=Math.max(bounds[3],y);
+      }
+      koharuFrames.push({result,pixels:canvas.toDataURL(),bounds,
+        visible:koharuRenderer.hitTest(170,260), margin:koharuRenderer.hitTest(10,10),gap:koharuRenderer.hitTest(170,416)});
+    }
+    const koharuActions = [];
+    for (const action of ['idle','reading','resting','sleeping']) for (const expression of ['neutral','smile','sleepy','surprised','shy','affectionate'])
+      koharuActions.push(await koharuRenderer.setState({action,expression}));
+    const koharuView = document.createElement('p'); koharuHost.append(koharuView);
+    const koharuBubble = new GreetingPresenter(koharuView,clock);
+    const koharuTasks = [];
+    const koharuInteraction = new InteractionRenderer({
+      setState(state) {const task=koharuRenderer.setState(state);koharuTasks.push(task);return task},
+      hitTest:(x,y)=>koharuRenderer.hitTest(x,y),dispose:()=>{},
+    },koharuBubble,clock,()=>0.4,()=>{},()=> 'familiar');
+    await koharuInteraction.setState({action:'reading',expression:'neutral'});
+    koharuInteraction.react(); await Promise.all(koharuTasks.splice(0));
+    const koharuReaction={during:koharuApplied.at(-1),text:koharuView.textContent};
+    clock.advance(3000); await Promise.all(koharuTasks.splice(0));
+    koharuReaction.after=koharuApplied.at(-1); koharuReaction.hidden=koharuView.hidden;
+    koharuInteraction.dispose(); koharuBubble.dispose(); koharuRenderer.dispose(); koharuHost.remove();
+
     const disposedTimers = clock.tasks.size;
     const behaviorPreviewAfter = typeof window.behaviorPreview;
     remove()
@@ -206,8 +242,36 @@ void (async () => {
     pendingRenderer.dispose()
     const disposedDuringLoad = await pending
     const afterDispose = await renderer.setState({action:'idle',expression:'smile'})
-    return {relationshipFrames,beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
+    return {koharuFrames,koharuActions,koharuReaction,relationshipFrames,beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
   })()`)
+  assert.equal(
+    new Set(results.koharuFrames.slice(0, 5).map((frame) => frame.pixels)).size,
+    5,
+  )
+  for (const frame of results.koharuFrames) {
+    assert.equal(frame.result.applied, true)
+    assert.equal(
+      frame.result.assetId,
+      `koharu-${frame.result.state.expression === 'smile' ? 'neutral' : frame.result.state.expression}`,
+    )
+    assert.deepEqual(frame.result.unavailable, [])
+    assert.equal(frame.visible, true)
+    assert.equal(frame.margin, false)
+    assert.equal(frame.gap, false)
+    frame.bounds.forEach((value, index) =>
+      assert.ok(
+        Math.abs(value - results.koharuFrames[0].bounds[index]) <= 2,
+        'standing envelope should stay aligned within 2 canvas pixels',
+      ),
+    )
+  }
+  for (const result of results.koharuActions)
+    assert.ok(result.assetId.startsWith('koharu-'))
+  assert.equal(results.koharuReaction.during.assetId, 'koharu-shy')
+  assert.ok(results.koharuReaction.text.length > 0)
+  assert.equal(results.koharuReaction.after.assetId, 'koharu-neutral')
+  assert.equal(results.koharuReaction.after.state.action, 'reading')
+  assert.equal(results.koharuReaction.hidden, true)
   assert.equal(
     new Set(results.snapshots.slice(0, 4).map((entry) => entry.pixels)).size,
     4,

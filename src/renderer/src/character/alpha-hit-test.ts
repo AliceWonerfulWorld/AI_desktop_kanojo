@@ -28,6 +28,7 @@ export function alphaHitTest(
   box: Rect,
   x: number,
   y: number,
+  channels: 1 | 4 = 4,
 ): boolean {
   if (
     ![x, y, box.x, box.y, box.width, box.height].every(Number.isFinite) ||
@@ -47,5 +48,5 @@ export function alphaHitTest(
     return false
   const px = Math.floor(((x - rect.x) * width) / rect.width)
   const py = Math.floor(((y - rect.y) * height) / rect.height)
-  return (data[(py * width + px) * 4 + 3] ?? 0) > 0
+  return (data[(py * width + px) * channels + channels - 1] ?? 0) > 0
 }

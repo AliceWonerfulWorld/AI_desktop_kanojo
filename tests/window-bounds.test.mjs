@@ -6,9 +6,9 @@ test('uses work area, leaving taskbar space untouched', () => {
   const area = { x: 0, y: 0, width: 1920, height: 1040 }
   assert.deepEqual(initialBounds(area), {
     x: 1556,
-    y: 496,
+    y: 436,
     width: 340,
-    height: 520,
+    height: 580,
   })
   assert.deepEqual(
     fitToWorkArea({ x: 2000, y: 1100, width: 340, height: 520 }, area),

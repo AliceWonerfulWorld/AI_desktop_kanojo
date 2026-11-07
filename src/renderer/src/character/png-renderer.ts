@@ -5,7 +5,7 @@ import type { CharacterRenderer, RenderResult } from './renderer'
 
 interface Frame {
   image: HTMLImageElement
-  pixels: Uint8ClampedArray
+  alpha: Uint8ClampedArray
 }
 
 export class PngCharacterRenderer implements CharacterRenderer {
@@ -49,7 +49,8 @@ export class PngCharacterRenderer implements CharacterRenderer {
             )
           }),
         ])
-        if (image.naturalWidth * image.naturalHeight > 16_000_000)
+        // Selected 3072×5500 PNGs are 16,896,000 pixels; keep a bounded ceiling.
+        if (image.naturalWidth * image.naturalHeight > 18_000_000)
           throw new Error('Image exceeds pixel budget')
         const buffer = document.createElement('canvas')
         buffer.width = image.naturalWidth
@@ -57,9 +58,20 @@ export class PngCharacterRenderer implements CharacterRenderer {
         const context = buffer.getContext('2d', { willReadFrequently: true })
         if (!context) throw new Error('Canvas 2D unavailable')
         context.drawImage(image, 0, 0)
+        const rgba = context.getImageData(
+          0,
+          0,
+          buffer.width,
+          buffer.height,
+        ).data
+        // Keep original-pixel hit testing without retaining RGB for every 4K frame.
+        const alpha = new Uint8ClampedArray(
+          image.naturalWidth * image.naturalHeight,
+        )
+        for (let i = 0; i < alpha.length; i++) alpha[i] = rgba[i * 4 + 3]!
         return {
           image,
-          pixels: context.getImageData(0, 0, buffer.width, buffer.height).data,
+          alpha,
         }
       } finally {
         clearTimeout(timeout)
@@ -136,12 +148,13 @@ export class PngCharacterRenderer implements CharacterRenderer {
     if (!this.frame || this.disposed) return false
     const rect = this.canvas.getBoundingClientRect()
     return alphaHitTest(
-      this.frame.pixels,
+      this.frame.alpha,
       this.frame.image.naturalWidth,
       this.frame.image.naturalHeight,
       { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
       clientX,
       clientY,
+      1,
     )
   }
 

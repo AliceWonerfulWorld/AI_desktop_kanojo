@@ -65,7 +65,7 @@ function finishPointer(event: PointerEvent): void {
 
 function rendered(result: RenderResult): void {
   status.textContent = result.assetId
-    ? `Main → Preload → Renderer の接続を確認しました。テスト素材: ${result.assetId}。状態: ${result.state.action}/${result.state.expression}${result.fallback ? '（代替画像）' : ''}`
+    ? `Main → Preload → Renderer の接続を確認しました。素材: ${result.assetId}。状態: ${result.state.action}/${result.state.expression}${result.fallback ? '（代替画像）' : ''}`
     : '画像を読み込めません。トレイから開発者ツールを開いてください。'
   character.dataset.ready = String(!!result.assetId)
   if (lastPointer) updateHitTest(lastPointer.x, lastPointer.y)

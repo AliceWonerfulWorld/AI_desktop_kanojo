@@ -25,9 +25,10 @@ export function initialBounds(area: Bounds): Bounds {
   return fitToWorkArea(
     {
       x: area.x + area.width - 340 - 24,
-      y: area.y + area.height - 520 - 24,
+      y: area.y + area.height - 580 - 24,
       width: 340,
-      height: 520,
+      // Compact window with a reserved dialogue area above the character.
+      height: 580,
     },
     area,
   )

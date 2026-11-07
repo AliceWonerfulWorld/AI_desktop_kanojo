@@ -106,6 +106,7 @@ app.on('browser-window-created', (_event, window) => {
         autonomousAction: document.querySelector('#character').dataset.action
       })`)
       assert.match(state.status, /接続を確認しました/)
+      assert.match(state.status, /素材: koharu-/)
       assert.equal(state.electron, process.versions.electron)
       assert.equal(state.requireType, 'undefined')
       assert.equal(state.processType, 'undefined')
@@ -187,15 +188,15 @@ app.on('browser-window-created', (_event, window) => {
         forwarding,
         'transparent image margins pass through',
       )
-      await moveTo(170, 312)
+      await moveTo(170, 346)
       assert.equal(ignoringMouse, false, 'opaque PNG pixels take input')
-      await moveTo(170, 480)
+      await moveTo(170, 544)
       assert.equal(
         ignoringMouse,
         forwarding,
         'transparent gap inside PNG rectangle passes through',
       )
-      await moveTo(143, 480)
+      await moveTo(146, 544)
       assert.equal(
         ignoringMouse,
         false,
@@ -210,8 +211,8 @@ app.on('browser-window-created', (_event, window) => {
       const menusBefore = popups
       await window.webContents.executeJavaScript(`{
         const character = document.querySelector('#character');
-        character.dispatchEvent(new PointerEvent('pointerdown', {button:0,clientX:170,clientY:480,bubbles:true}));
-        character.dispatchEvent(new MouseEvent('contextmenu', {clientX:170,clientY:480,bubbles:true,cancelable:true}));
+        character.dispatchEvent(new PointerEvent('pointerdown', {button:0,clientX:170,clientY:544,bubbles:true}));
+        character.dispatchEvent(new MouseEvent('contextmenu', {clientX:170,clientY:544,bubbles:true,cancelable:true}));
       }`)
       await new Promise((resolve) => setTimeout(resolve, 50))
       assert.equal(
@@ -226,7 +227,7 @@ app.on('browser-window-created', (_event, window) => {
       )
       await ipc(
         'desktop:menu',
-        `document.querySelector('#character').dispatchEvent(new MouseEvent('contextmenu', {clientX:170,clientY:312,bubbles:true,cancelable:true}))`,
+        `document.querySelector('#character').dispatchEvent(new MouseEvent('contextmenu', {clientX:170,clientY:346,bubbles:true,cancelable:true}))`,
       )
       assert.equal(
         popups,
@@ -245,7 +246,7 @@ app.on('browser-window-created', (_event, window) => {
       await waitFor(() => window.isFocused())
       const nativeCursor = screen.getCursorScreenPoint
       const inputOrigin = window.getBounds()
-      let inputCursor = { x: inputOrigin.x + 170, y: inputOrigin.y + 312 }
+      let inputCursor = { x: inputOrigin.x + 170, y: inputOrigin.y + 346 }
       screen.getCursorScreenPoint = () => inputCursor
       const pauseInput = () => new Promise((resolve) => setTimeout(resolve, 60))
       const mouse = (type, x, y, button = 'left') =>
@@ -268,37 +269,37 @@ app.on('browser-window-created', (_event, window) => {
         0,
         'transparent pixels do not interact',
       )
-      await press(170, 312, 'left', true)
+      await press(170, 346, 'left', true)
       inputCursor = { x: inputCursor.x + 30, y: inputCursor.y + 20 }
-      mouse('mouseMove', 200, 332)
-      mouse('mouseUp', 200, 332)
+      mouse('mouseMove', 200, 366)
+      mouse('mouseUp', 200, 366)
       await pauseInput()
       assert.equal(
         await countInteractions(),
         0,
         'drag release does not interact',
       )
-      await press(170, 312, 'left', true)
+      await press(170, 346, 'left', true)
       await window.webContents.executeJavaScript(
         "dispatchEvent(new Event('blur'))",
       )
-      mouse('mouseUp', 170, 312)
+      mouse('mouseUp', 170, 346)
       await pauseInput()
       assert.equal(
         await countInteractions(),
         0,
         'cancelled pointer does not interact',
       )
-      await press(170, 312, 'right')
-      mouse('mouseUp', 170, 312, 'right')
+      await press(170, 346, 'right')
+      mouse('mouseUp', 170, 346, 'right')
       await pauseInput()
       assert.equal(await countInteractions(), 0, 'right click is menu-only')
-      await press(170, 312, 'left', true)
-      mouse('mouseUp', 170, 312)
+      await press(170, 346, 'left', true)
+      mouse('mouseUp', 170, 346)
       await waitFor(async () => (await countInteractions()) === 1)
       for (let i = 0; i < 3; i++) {
-        await press(170, 312, 'left', true)
-        mouse('mouseUp', 170, 312)
+        await press(170, 346, 'left', true)
+        mouse('mouseUp', 170, 346)
         await pauseInput()
       }
       assert.equal(

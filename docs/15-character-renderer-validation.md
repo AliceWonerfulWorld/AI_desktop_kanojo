@@ -1,5 +1,7 @@
 # MVP-03 画像差分とアルファ判定の検証
 
+> Issue #22更新: 通常ランタイムは小春の選定透過PNG5枚へ移行済み。幾何図形4枚は `test/manifest.json` と `test-assets.ts` のテスト専用。smileは小春neutralへ代替し、shy/affectionateは実画像を使う。画素上限は1800万、保持マスクは元画素のalpha成分のみ。現在の結果・未確認事項は [小春統合検証](21-koharu-integration-validation.md)。以下の配置・素材ID・検証件数はMVP-03時点の履歴であり、現在の通常表示を示さない。描画APIと開発プレビューの操作方法は継続する。
+
 ## 実装範囲
 
 行動は `idle / reading / resting / sleeping`、表情は `neutral / smile / sleepy / surprised / shy / affectionate`。型の正本は `src/shared/character-state.ts`。デザイン資料の通常表情 `normal` は `neutral` に対応する。
