@@ -106,6 +106,7 @@ interface PersistedState {
 - `CharacterRenderer` の setState / hitTest / dispose 経由で状態更新と入力判定を行う。
 - PNG実装は素材台帳の状態マッピングとフォールバック、元画像のアルファ判定を所有する。
 - 実装範囲・検証・Live2Dへの交換境界は [MVP-03 検証記録](15-character-renderer-validation.md) を参照。
+- Issue #22で通常素材を小春5表情へ移行。テスト素材のmanifest/importは別に分離し、通常ランタイムから参照しない。元画素のalphaだけをヒットマスクとして保持する。[統合検証](21-koharu-integration-validation.md) を参照。
 
 ## 9. 自律行動エンジン（MVP-04）
 - `src/behavior/behavior-engine.ts` は Electron / DOM / PNG / 会話文から独立し、時計と乱数を注入して動作する。
