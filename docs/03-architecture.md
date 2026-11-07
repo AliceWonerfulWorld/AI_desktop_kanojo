@@ -119,3 +119,9 @@ interface PersistedState {
 - 起動挨拶は会話/描画側に分離。Main の空の初回マーカーだけを読み、交流時間や未起動時間を推定しない。
 - Main の powerMonitor 通知を最小限の Preload API で配信し、Renderer が一時停止・復帰を管理する。
 - スリープ通知の限界と模擬時刻テストは [時間帯検証記録](18-time-policy-validation.md) を参照。
+
+## 11. クリック交流（MVP-06）
+- `PointerGesture` が真のクリックを判別し、Main の finishDrag 分類で実移動も確認する。
+- `responses.ts` が行動別の短い応答を所有し、`InteractionRenderer` が共通描画APIに一時表情を重ねる。行動エンジンとは独立。
+- 受け付けた交流だけを character-interaction で通知し、親密度の保存や増加はまだ行わない。
+- 受付間隔、復元、破棄と入力検証は [クリック交流検証記録](19-interaction-validation.md) を参照。
