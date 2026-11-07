@@ -46,3 +46,9 @@
 ## リリース判断
 - ハッカソン: デモ可能なMVPを優先。
 - DLsite: 素材の商用権利、審査基準、Windows配布の品質確認後に公開。
+
+## Live2D優先拡張（目標）
+- [#15 Cubism SDK for Web 技術検証](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues/15)
+- [#16 Live2D描画アダプターと自律行動統合](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues/16)
+- PNGのMVPを壊さない。SDK・モデルのライセンス確認、透明描画とクリック透過、実機での描画負荷を検証。
+- 詳細は [Live2D導入計画](09-live2d-plan.md) を参照。
