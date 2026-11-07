@@ -13,7 +13,12 @@ import type { IpcMainEvent, MenuItemConstructorOptions } from 'electron'
 import { join } from 'node:path'
 import trayIconPath from '../../resources/tray.png?asset'
 import { channels, type LaunchInfo } from '../shared/desktop-api'
-import { fitToWorkArea, initialBounds } from './window-bounds'
+import { fitToWorkArea, initialBounds, scaledBounds } from './window-bounds'
+import { createSettingsWindow } from './settings-window'
+import {
+  validateSettingsPatch,
+  type PresentationState,
+} from '../shared/presentation'
 import type { MemorySession } from './memory-session'
 import { actions } from '../shared/character-state'
 
@@ -28,7 +33,8 @@ export function createDesktopWindow(
 } {
   const saved = memory().snapshot().settings
   const initial =
-    saved.windowBounds ?? initialBounds(screen.getPrimaryDisplay().workArea)
+    saved.windowBounds ??
+    initialBounds(screen.getPrimaryDisplay().workArea, saved.scale)
   const window = new BrowserWindow({
     ...fitToWorkArea(initial, screen.getDisplayMatching(initial).workArea),
     frame: false,
@@ -59,6 +65,56 @@ export function createDesktopWindow(
   let currentLaunchInfo = launchInfo
   let interactionEligible = false
   let resetPending = false
+  let settingsWindow: BrowserWindow | undefined
+  let revision = 0
+  function presentation(): PresentationState {
+    return { revision, visible: shown, settings: memory().snapshot().settings }
+  }
+  function publish(): void {
+    revision++
+    const state = presentation()
+    if (!window.webContents.isDestroyed())
+      window.webContents.send(channels.presentation, state)
+    if (settingsWindow && !settingsWindow.isDestroyed())
+      settingsWindow.webContents.send(channels.settingsChanged, state)
+  }
+  function openSettings(): void {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.show()
+      settingsWindow.focus()
+      return
+    }
+    const created = createSettingsWindow()
+    settingsWindow = created
+    created.on('closed', () => {
+      if (settingsWindow === created) settingsWindow = undefined
+    })
+  }
+  function applySettings(value: unknown): PresentationState {
+    const patch = validateSettingsPatch(value)
+    const previous = memory().snapshot().settings
+    const next = { ...previous, ...patch }
+    if (!supportsForwarding) next.clickThrough = false
+    memory().settings(next)
+    window.setAlwaysOnTop(next.alwaysOnTop)
+    clickThrough = next.clickThrough
+    if (next.scale !== previous.scale) {
+      stopDrag()
+      const bounds = window.getBounds()
+      window.setBounds(
+        scaledBounds(
+          bounds,
+          screen.getDisplayMatching(bounds).workArea,
+          next.scale,
+        ),
+      )
+    }
+    if (next.paused) interactionEligible = false
+    rememberWindow()
+    updateMouse()
+    refreshTray()
+    return presentation()
+  }
   function rememberWindow(): void {
     if (quitting) return
     const settings = memory().snapshot().settings
@@ -70,6 +126,7 @@ export function createDesktopWindow(
     settings.clickThrough = clickThrough
     memory().settings(settings)
     persist()
+    publish()
   }
   let drag:
     | {
@@ -117,6 +174,7 @@ export function createDesktopWindow(
     shown = true
     window.showInactive()
     refreshTray()
+    publish()
   }
 
   function hide(): void {
@@ -124,10 +182,12 @@ export function createDesktopWindow(
     shown = false
     window.hide()
     refreshTray()
+    publish()
   }
 
   function menuItems(): MenuItemConstructorOptions[] {
     return [
+      { label: '設定…', click: openSettings },
       { label: '表示', enabled: !shown, click: show },
       { label: '非表示', enabled: shown, click: hide },
       { type: 'separator' },
@@ -136,9 +196,7 @@ export function createDesktopWindow(
         type: 'checkbox',
         checked: window.isAlwaysOnTop(),
         click: (item) => {
-          window.setAlwaysOnTop(item.checked)
-          rememberWindow()
-          refreshTray()
+          applySettings({ alwaysOnTop: item.checked })
         },
       },
       {
@@ -147,17 +205,27 @@ export function createDesktopWindow(
         checked: clickThrough,
         enabled: supportsForwarding,
         click: (item) => {
-          clickThrough = item.checked
-          rememberWindow()
-          updateMouse()
-          refreshTray()
+          applySettings({ clickThrough: item.checked })
+        },
+      },
+      {
+        label: '動きとセリフを一時停止',
+        type: 'checkbox',
+        checked: memory().snapshot().settings.paused,
+        click: (item) => {
+          applySettings({ paused: item.checked })
         },
       },
       {
         label: '主画面の右下に戻す',
         click: () => {
           stopDrag()
-          window.setBounds(initialBounds(screen.getPrimaryDisplay().workArea))
+          window.setBounds(
+            initialBounds(
+              screen.getPrimaryDisplay().workArea,
+              memory().snapshot().settings.scale,
+            ),
+          )
           show()
         },
       },
@@ -189,6 +257,7 @@ export function createDesktopWindow(
             window.setAlwaysOnTop(true)
             window.setBounds(initialBounds(screen.getPrimaryDisplay().workArea))
             rememberWindow()
+            publish()
             window.webContents.reload()
             show()
           } catch (error) {
@@ -221,10 +290,12 @@ export function createDesktopWindow(
     shown = true
     keepOnScreen()
     refreshTray()
+    publish()
   })
   window.on('hide', () => {
     shown = false
     refreshTray()
+    publish()
   })
 
   const trusted = (
@@ -232,6 +303,38 @@ export function createDesktopWindow(
   ): boolean =>
     event.sender === window.webContents &&
     event.senderFrame === window.webContents.mainFrame
+  const trustedSettings = (
+    event: Pick<IpcMainEvent, 'sender' | 'senderFrame'>,
+  ): boolean =>
+    !!settingsWindow &&
+    !settingsWindow.isDestroyed() &&
+    event.sender === settingsWindow.webContents &&
+    event.senderFrame === settingsWindow.webContents.mainFrame
+  ipcMain.handle(channels.presentation, (event) => {
+    if (!trusted(event)) throw new Error('Untrusted presentation request')
+    return presentation()
+  })
+  ipcMain.handle(channels.settingsGet, (event) => {
+    if (!trustedSettings(event)) throw new Error('Untrusted settings request')
+    return presentation()
+  })
+  ipcMain.handle(channels.settingsUpdate, (event, patch: unknown) => {
+    if (!trustedSettings(event) || quitting || resetPending)
+      throw new Error('Settings unavailable')
+    return applySettings(patch)
+  })
+  ipcMain.handle(channels.settingsVisible, (event, visible: unknown) => {
+    if (
+      !trustedSettings(event) ||
+      typeof visible !== 'boolean' ||
+      quitting ||
+      resetPending
+    )
+      throw new Error('Invalid visibility request')
+    if (visible) show()
+    else hide()
+    return presentation()
+  })
 
   const pointerHandler = (event: IpcMainEvent, value: unknown): void => {
     if (!trusted(event) || typeof value !== 'boolean') return
@@ -305,7 +408,8 @@ export function createDesktopWindow(
       interactionEligible &&
       window.isVisible() &&
       !resetPending &&
-      !quitting
+      !quitting &&
+      !memory().snapshot().settings.paused
     ) {
       interactionEligible = false
       const state = memory().interact()
@@ -364,6 +468,14 @@ export function createDesktopWindow(
   window.on('closed', () => {
     if (dragTimer) clearInterval(dragTimer)
     tray.destroy()
+    settingsWindow?.destroy()
+    for (const channel of [
+      channels.presentation,
+      channels.settingsGet,
+      channels.settingsUpdate,
+      channels.settingsVisible,
+    ])
+      ipcMain.removeHandler(channel)
     ipcMain.removeHandler(channels.launch)
     ipcMain.removeHandler(channels.dragEnd)
     ipcMain.removeHandler(channels.memory)
@@ -384,7 +496,10 @@ export function createDesktopWindow(
     interactive = false
     stopDrag()
   })
-  window.once('ready-to-show', show)
+  window.once('ready-to-show', () => {
+    if (memory().snapshot().settings.showOnStartup) show()
+    else hide()
+  })
   updateMouse()
   return { window, show }
 }

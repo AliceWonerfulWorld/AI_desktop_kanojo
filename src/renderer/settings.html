@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; object-src 'none'; base-uri 'none'; frame-src 'none'"
+    />
+    <title>小春の設定</title>
+    <link rel="stylesheet" href="/src/settings/style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">小春との暮らし</p>
+        <h1>表示の設定</h1>
+        <p>作業に合わせて、ちょうどいい距離に。</p>
+      </header>
+      <fieldset id="controls" disabled>
+        <legend class="sr-only">表示と動作</legend>
+        <label class="option"
+          ><input id="always-on-top" type="checkbox" /><span
+            >常に手前に表示</span
+          ></label
+        >
+        <div class="size">
+          <label for="scale"
+            >キャラクターのサイズ
+            <output id="scale-value" for="scale">100%</output></label
+          ><input
+            id="scale"
+            type="range"
+            min="0.5"
+            max="2"
+            step="0.25"
+            value="1"
+            aria-describedby="scale-help"
+          />
+          <p id="scale-help" class="hint">
+            50〜200%。画面に収まる範囲で表示します。
+          </p>
+        </div>
+        <label class="option"
+          ><input id="spontaneous" type="checkbox" /><span
+            >自発的なセリフを表示<small
+              >起動・復帰時の挨拶。クリックへの返事は残ります。</small
+            ></span
+          ></label
+        >
+        <label class="option"
+          ><input id="show-on-startup" type="checkbox" /><span
+            >起動時にキャラクターを表示<small
+              >OFFでもトレイから表示できます。</small
+            ></span
+          ></label
+        >
+        <label class="option"
+          ><input id="paused" type="checkbox" /><span
+            >動きとセリフを一時停止<small
+              >立ち絵は残し、動きとクリックへの反応を止めます。</small
+            ></span
+          ></label
+        >
+        <div class="actions">
+          <button id="visibility" type="button">キャラクターを非表示</button
+          ><button id="close" type="button">閉じる</button>
+        </div>
+      </fieldset>
+      <p id="status" class="hint" role="status" aria-live="polite">
+        設定を読み込んでいます…
+      </p>
+    </main>
+    <script type="module" src="/src/settings/main.ts"></script>
+  </body>
+</html>

@@ -19,6 +19,7 @@
     "postinstall": "install-electron",
     "test:smoke": "electron scripts/smoke.cjs",
     "test:memory": "node scripts/memory-smoke.cjs",
+    "test:settings": "node scripts/settings-smoke.cjs",
     "test:styles": "electron scripts/style-smoke.cjs && electron scripts/style-smoke.cjs --dev",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "test:character": "electron scripts/character-smoke.cjs",

@@ -25,7 +25,9 @@ npm run dev
 
 初回判定は userData 内の空の `welcome-seen.marker` を引き継ぎます。生活記憶は同じ保存先のバージョン付き `memory.json` に保存し、未起動やスリープの時間を累計稼働時間へ加算しません。時計変更は次回選択から反映し、進行中の行動は中断しません。
 
-親密度・交流回数・最終起動日時・実稼働時間・最後の行動・位置・最前面/透過設定を終了後も復元します。保存行動は新しい継続時間で再開し、昼間の睡眠は現在時刻で選び直します。専用設定画面や表示サイズ・自発セリフの調整は #9 です。トレイの「生活記憶・設定を初期化…」で確認後にデータを消去できます。ウィンドウを閉じると非表示になり、トレイの「終了」で保存して終了します。同時起動は既存ウィンドウを再表示します。[保存・復旧・確認方法](docs/22-memory-validation.md)を参照してください。
+親密度・交流回数・最終起動日時・実稼働時間・最後の行動・位置と設定を終了後も復元します。トレイ/右クリックの「設定…」で最前面、サイズ50〜200%、自発的な挨拶、起動時表示、一時停止を変更できます。非表示でもトレイから戻せます。挨拶OFFでもクリックには返事し、一時停止中は動きと反応を止めます。[設定・確認手順](docs/23-settings-validation.md)を参照してください。
+
+保存行動は新しい継続時間で再開し、昼間の睡眠は現在時刻で選び直します。トレイの「生活記憶・設定を初期化…」で確認後にデータを消去できます。ウィンドウを閉じると非表示になり、トレイの「終了」で保存して終了します。同時起動は既存ウィンドウを再表示します。[保存・復旧・確認方法](docs/22-memory-validation.md)を参照してください。
 
 Renderer の変更は HMR で反映されます。Main / Preload の変更が反映されない場合は、トレイから終了して再起動してください。
 
@@ -57,6 +59,7 @@ npm run start
 | `npm test`               | 作業領域と複数画面の境界テスト                                 |
 | `npm run test:smoke`     | ビルド後の Electron で分離設定・入力制御・トレイ処理を自動検証 |
 | `npm run test:memory`    | 一時保存先で実Electronの終了・再起動・復元・初期化を検証       |
+| `npm run test:settings`  | 設定UI・サイズ・一時停止・非表示起動と再起動復元を検証         |
 | `npm run test:character` | Electronで差分・フォールバック・拡大判定・解放を検証           |
 | `npm run test:styles`    | 開発/本番のCSS、開発用の親密度確認と段階別挨拶を検証           |
 | `npm run assets:test`    | 自作テストPNGを再生成（通常起動では不要）                      |
@@ -85,7 +88,7 @@ src/shared/     プロセス間で共有する型と IPC チャンネル
 - キャラが表示されない: トレイから「主画面の右下に戻す」。改善しなければ Console と `out/preload/index.js` の生成を確認し、ビルドし直してください。
 - `npm ci` が失敗: Node バージョン・プロキシ・Electron バイナリのダウンロード制限を確認。lockfile は削除せずに再試行します。
 
-CI は Windows / macOS で `npm ci`、`npm run check`、`test:styles`、`test:smoke`、`test:character`、`test:memory` を実行します。再起動・初期化テストは一時保存先を使います。実マウス・実OSスリープ・混在 DPI・ディスプレイの抜き差しは別途、検証記録の手順で確認してください。
+CI は Windows / macOS で `npm ci`、`npm run check`、`test:styles`、`test:smoke`、`test:character`、`test:memory`、`test:settings` を実行します。再起動・初期化テストは一時保存先を使います。実マウス・実OSスリープ・混在 DPI・ディスプレイの抜き差しは別途、検証記録の手順で確認してください。
 
 Electron 42 以降の遅延ダウンロードに対応するため、`postinstall` で公式の `install-electron` を呼びます（[公式変更点](https://www.electronjs.org/blog/electron-42-0)）。`--ignore-scripts` を使う場合は、起動前に `npm exec -- install-electron` を実行してください。
 

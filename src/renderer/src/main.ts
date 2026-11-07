@@ -2,7 +2,8 @@ import { PointerGesture } from '../../interaction/pointer-gesture'
 import { RelationshipModel } from '../../relationship/relationship'
 import { InteractionRenderer } from './interaction/interaction-renderer'
 import { timeContextAt } from '../../behavior/time-policy'
-import { createPowerLifecycle } from '../../behavior/power-lifecycle'
+import { createPresentationPause } from '../../behavior/presentation-pause'
+import type { PresentationState } from '../../shared/presentation'
 import { GreetingPresenter, greetingFor } from './dialogue/greeting'
 import { browserBehaviorClock, createBehaviorRuntime } from './behavior/runtime'
 import type { BehaviorEngine } from '../../behavior/behavior-engine'
@@ -29,6 +30,40 @@ let removePreview: (() => void) | undefined
 let removeRelationshipPreview: (() => void) | undefined
 let relationship = new RelationshipModel(browserBehaviorClock.now)
 let memoryRevision = 0
+let presentation: PresentationState | undefined
+let removePresentation: (() => void) | undefined
+let updatePause: ((blocked: boolean) => void) | undefined
+let suspended = false
+function blocked(): boolean {
+  return (
+    suspended ||
+    document.hidden ||
+    presentation?.visible === false ||
+    presentation?.settings.paused === true
+  )
+}
+function syncPresentation(): void {
+  updatePause?.(blocked())
+  if (blocked()) {
+    stopDrag()
+    interactions?.cancelReaction()
+    greeting?.hide()
+  } else if (presentation?.settings.spontaneousDialogue === false)
+    greeting?.hidePassive()
+}
+function receivePresentation(state: PresentationState): void {
+  if (disposed || (presentation && state.revision < presentation.revision))
+    return
+  const visibilityChanged = presentation?.visible !== state.visible
+  presentation = state
+  if (visibilityChanged) {
+    // Main releases input on show/hide. Re-evaluate even if the next hit matches the old one.
+    interactive = undefined
+    lastPointer = undefined
+    window.desktop.setPointerInteractive(false)
+  }
+  syncPresentation()
+}
 
 function updateHitTest(x: number, y: number): void {
   lastPointer = { x, y }
@@ -59,7 +94,7 @@ function finishPointer(event: PointerEvent): void {
   updateHitTest(event.clientX, event.clientY)
   void finished
     .then((accepted) => {
-      if (accepted && !disposed && !document.hidden) interactions?.react()
+      if (accepted && !disposed && !blocked()) interactions?.react()
     })
     .catch((error: unknown) => console.error('Interaction failed', error))
 }
@@ -74,6 +109,8 @@ function rendered(result: RenderResult): void {
 
 async function initialize(): Promise<void> {
   window.desktop.setPointerInteractive(false)
+  removePresentation = window.desktop.onPresentation(receivePresentation)
+  receivePresentation(await window.desktop.getPresentation())
   const savedMemory = await window.desktop.getMemory()
   if (disposed) return
   relationship = new RelationshipModel(
@@ -162,17 +199,14 @@ async function initialize(): Promise<void> {
   })
   window.addEventListener('blur', () => stopDrag())
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      stopDrag()
-      interactions?.cancelReaction()
-      greeting?.hide()
-    }
+    syncPresentation()
   })
   window.addEventListener('pagehide', () => {
     disposed = true
     stopDrag()
     gesture?.dispose()
     removePowerListener?.()
+    removePresentation?.()
     removeTimePreview?.()
     greeting?.dispose()
     behavior?.dispose()
@@ -202,6 +236,7 @@ async function initialize(): Promise<void> {
   }
   const displayGreeting = (firstLaunch: boolean): void => {
     publishTime()
+    if (blocked() || !presentation?.settings.spontaneousDialogue) return
     greeting?.show(
       greetingFor(
         timeContextAt(localTime.now()).period,
@@ -231,9 +266,11 @@ async function initialize(): Promise<void> {
       selectionPolicy: () => timeContextAt(localTime.now()),
     },
   )
-  const powerLifecycle = createPowerLifecycle(behavior)
+  updatePause = createPresentationPause(behavior)
   removePowerListener = window.desktop.onPowerState((state) => {
-    if (!powerLifecycle(state)) return
+    if (suspended === (state === 'suspend')) return
+    suspended = state === 'suspend'
+    syncPresentation()
     if (state === 'suspend') {
       stopDrag()
       interactions?.cancelReaction()
@@ -244,6 +281,7 @@ async function initialize(): Promise<void> {
     }
   })
   behavior.start()
+  syncPresentation()
   displayGreeting(launchInfo.firstLaunch)
   document.body.dataset.lifecycleReady = 'true'
   if (import.meta.env.DEV) {
@@ -281,6 +319,7 @@ void initialize().catch((error: unknown) => {
   behavior?.dispose()
   greeting?.dispose()
   removePowerListener?.()
+  removePresentation?.()
   window.desktop?.setPointerInteractive(false)
   status.textContent =
     '初期化に失敗しました。トレイから開発者ツールを開いてください。'

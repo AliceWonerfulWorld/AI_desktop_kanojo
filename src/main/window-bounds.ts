@@ -21,14 +21,34 @@ export function fitToWorkArea(bounds: Bounds, area: Bounds): Bounds {
   }
 }
 
-export function initialBounds(area: Bounds): Bounds {
+export function scaledBounds(
+  bounds: Bounds,
+  area: Bounds,
+  scale: number,
+): Bounds {
+  const width = Math.max(340, Math.round(340 * scale))
+  const height = 112 + Math.round(468 * scale)
   return fitToWorkArea(
     {
-      x: area.x + area.width - 340 - 24,
-      y: area.y + area.height - 580 - 24,
-      width: 340,
+      x: bounds.x + (bounds.width - width) / 2,
+      y: bounds.y + bounds.height - height,
+      width,
+      height,
+    },
+    area,
+  )
+}
+
+export function initialBounds(area: Bounds, scale = 1): Bounds {
+  const width = Math.max(340, Math.round(340 * scale))
+  const height = 112 + Math.round(468 * scale)
+  return fitToWorkArea(
+    {
+      x: area.x + area.width - width - 24,
+      y: area.y + area.height - height - 24,
+      width,
       // Compact window with a reserved dialogue area above the character.
-      height: 580,
+      height,
     },
     area,
   )
