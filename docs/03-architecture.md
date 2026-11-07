@@ -88,3 +88,9 @@ interface PersistedState {
 - フレーム画像やLive2Dなど素材制作の工数
 
 まずは仮のPNG 1枚でElectron上の透明・ドラッグ・クリック透過を検証し、成立を確認してから行動エンジンに進む。
+
+## 6. 描画差し替え設計（Live2Dを見据える）
+- BehaviorEngine は `Action`, `Expression` の意味状態を通知し、特定レンダラーのAPIを直接呼ばない。
+- PNG版で先にMVPを完成し、#15でCubism表示を検証、成功したら#16でLive2Dアダプターを統合する。
+- 描画方式とセーブ形式を分離する。Cubism SDK・商用モデルのライセンス確認なしに配布しない。
+- 詳細: [docs/09-live2d-plan.md](09-live2d-plan.md)。
