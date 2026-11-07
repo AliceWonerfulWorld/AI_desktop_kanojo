@@ -54,7 +54,14 @@ function syncPresentation(): void {
 function receivePresentation(state: PresentationState): void {
   if (disposed || (presentation && state.revision < presentation.revision))
     return
+  const visibilityChanged = presentation?.visible !== state.visible
   presentation = state
+  if (visibilityChanged) {
+    // Main releases input on show/hide. Re-evaluate even if the next hit matches the old one.
+    interactive = undefined
+    lastPointer = undefined
+    window.desktop.setPointerInteractive(false)
+  }
   syncPresentation()
 }
 

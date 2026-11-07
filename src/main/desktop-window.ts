@@ -84,9 +84,10 @@ export function createDesktopWindow(
       settingsWindow.focus()
       return
     }
-    settingsWindow = createSettingsWindow()
-    settingsWindow.on('closed', () => {
-      settingsWindow = undefined
+    const created = createSettingsWindow()
+    settingsWindow = created
+    created.on('closed', () => {
+      if (settingsWindow === created) settingsWindow = undefined
     })
   }
   function applySettings(value: unknown): PresentationState {
