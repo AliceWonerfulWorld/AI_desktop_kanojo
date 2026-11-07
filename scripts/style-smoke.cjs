@@ -41,6 +41,38 @@ app.on('browser-window-created', (_event, window) => {
       assert.equal(styles.statusWidth, '1px')
       assert.equal(styles.overflow, 'hidden')
       assert.ok(styles.top >= 0 && styles.bottom <= styles.height)
+      if (server) {
+        for (let attempt = 0; attempt < 150; attempt++) {
+          if (
+            await window.webContents.executeJavaScript(
+              '!!window.relationshipPreview',
+            )
+          )
+            break
+          await new Promise((resolve) => setTimeout(resolve, 20))
+        }
+        const relationship = await window.webContents
+          .executeJavaScript(`(() => {
+          const snapshots = [];
+          const greetings = [];
+          for (const value of [29, 30, 69, 70, 100]) {
+            snapshots.push(window.relationshipPreview.setAffection(value));
+            window.relationshipPreview.showGreeting();
+            greetings.push(document.querySelector('#greeting').textContent);
+          }
+          let rejected = false;
+          try { window.relationshipPreview.setAffection(101) } catch { rejected = true }
+          return {snapshots, greetings, rejected, state: window.relationshipPreview.getState()};
+        })()`)
+        assert.deepEqual(
+          relationship.snapshots.map((state) => state.stage),
+          ['stranger', 'familiar', 'familiar', 'close', 'close'],
+        )
+        assert.equal(new Set(relationship.greetings).size, 3)
+        assert.equal(relationship.rejected, true)
+        assert.equal(relationship.state.affection, 100)
+        console.log('Development relationship preview and greetings verified')
+      }
       console.log(`Styles verified (${server ? 'development' : 'production'})`)
       await server?.close()
       app.quit()
