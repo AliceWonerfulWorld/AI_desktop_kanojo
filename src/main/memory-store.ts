@@ -6,6 +6,7 @@ import {
   readdir,
   unlink,
   open,
+  stat,
 } from 'node:fs/promises'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -21,6 +22,8 @@ export class MemoryStore {
   private readonly report: (error: unknown) => void
   private queue: Promise<void> = Promise.resolve()
   private lastGood: string | undefined
+  recovery: 'none' | 'backup' | 'defaults' = 'none'
+  private invalid = false
   constructor(
     directory: string,
     report: (error: unknown) => void = console.error,
@@ -31,11 +34,14 @@ export class MemoryStore {
 
   private async read(name: string): Promise<MemoryState | undefined> {
     try {
+      if ((await stat(join(this.directory, name))).size > 65536)
+        throw new Error('Save exceeds size limit')
       const text = await readFile(join(this.directory, name), 'utf8')
       if (text.length > 65536) throw new Error('Save exceeds size limit')
       return validateMemory(JSON.parse(text))
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+      this.invalid = true
       this.report(error)
       // Preserve corrupt or future-version data before any new save can replace it.
       await rename(
@@ -47,10 +53,17 @@ export class MemoryStore {
   }
   async load(): Promise<MemoryState> {
     await mkdir(this.directory, { recursive: true })
-    const state =
-      (await this.read('memory.json')) ??
-      (await this.read('memory.json.bak')) ??
-      defaultMemory()
+    this.invalid = false
+    const primary = await this.read('memory.json')
+    const backup = primary ? undefined : await this.read('memory.json.bak')
+    this.recovery = primary
+      ? 'none'
+      : backup
+        ? 'backup'
+        : this.invalid
+          ? 'defaults'
+          : 'none'
+    const state = primary ?? backup ?? defaultMemory()
     this.lastGood = JSON.stringify(state)
     return state
   }

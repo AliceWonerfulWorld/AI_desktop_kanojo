@@ -99,6 +99,18 @@ if (!app.requestSingleInstanceLock()) {
         () => performance.now(),
         new Date().toISOString(),
       )
+      if (store.recovery !== 'none') {
+        void dialog.showMessageBox({
+          type: 'warning',
+          title: '生活記憶の復旧',
+          message:
+            store.recovery === 'backup'
+              ? '保存データに問題があったため、前回のバックアップから復旧しました。'
+              : '保存データを読み込めなかったため、初期状態で起動します。',
+          detail: '元のデータは保存先に退避しています。',
+          buttons: ['OK'],
+        })
+      }
       await store.save(memory.snapshot()).catch(saveError)
       checkpoint = setInterval(persist, 30000)
       app.on('before-quit', (event) => {
@@ -129,6 +141,10 @@ if (!app.requestSingleInstanceLock()) {
     })
     .catch((error: unknown) => {
       console.error('Application startup failed', error)
+      dialog.showErrorBox(
+        '起動できませんでした',
+        '生活記憶の保存先へのアクセスと起動ログを確認してください。',
+      )
       app.quit()
     })
 }
