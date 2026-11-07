@@ -23,7 +23,7 @@
 - 成人キャラクター1名のデスクトップ常駐アプリ
 - 自律的な生活が主役（A）、親密度の変化は補助（B）
 - 2D立ち絵、表情・行動差分を利用
-- Windows向けMVPを優先
+- MacBook Air（Apple Silicon / macOS）でMVPを先行開発し、Windows対応は後段で検証
 - 初期技術候補: Electron + TypeScript
 - ローカル保存・オフライン優先
 - 成人向け表現はユーザーの明示操作で表示する方向
@@ -33,7 +33,7 @@
 - ハッカソンの日程・チーム人数・審査基準
 - PNG差分を中心にするか、Live2Dを本格採用するか
 - 音声・AI会話の搭載範囲と費用
-- 正式な販売価格・対応OSの追加範囲
+- 正式な販売価格・Windows配布の優先度・検証環境
 
 ## 開発管理
 [GitHub Issues](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues) で実装タスクを管理します。仕様変更時は関連ドキュメントとIssueを更新してください。
