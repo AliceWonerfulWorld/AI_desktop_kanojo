@@ -15,6 +15,7 @@
 | [04-behavior-spec.md](04-behavior-spec.md) | 自律行動・時間帯・関係性・生活記憶の仕様 |
 | [05-roadmap.md](05-roadmap.md) | 実装順・Issue対応・完了基準 |
 | [06-release-checklist.md](06-release-checklist.md) | DLsite販売に向けた確認事項 |
+| [07-ui-ux.md](07-ui-ux.md) | 参考記事を踏まえたUI/UX方針・2モード・操作導線 |
 
 ## 意思決定済み
 - 成人キャラクター1名のデスクトップ常駐アプリ
