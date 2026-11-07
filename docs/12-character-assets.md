@@ -14,19 +14,19 @@
 
 | ID | 素材 | ファイル名例 | 優先度 | 備考 |
 | --- | --- | --- | --- | --- |
-| REF-01 | デザインマスター（全身） | reference/master_fullbody.png | P0 | 同一人物性の基準、最初に選定 |
+| REF-01 | **採用済みマスター（手振り・全身）** | reference/koharu_master_approved.png | P0 | デザイン決定済み・PNGの配置は別途 |
 | REF-02 | 顔アップ | reference/face.png | P0 | 目・髪・色を固定 |
 | IMG-01 | 通常立ち絵（全身・透過） | png/standing_neutral.png | P0 | クリック前の標準 |
 | IMG-02 | 明るい笑顔 | png/standing_smile.png | P0 | 挨拶 |
 | IMG-03 | 眠そう | png/standing_sleepy.png | P0 | 夜間・睡眠 |
 | IMG-04 | 驚き | png/standing_surprised.png | P0 | クリックリアクション |
-| IMG-05 | 照れ | png/standing_shy.png | P1 | 関係性変化 |
+| IMG-05 | **照れ（参考表現承認済み）** | reference/koharu_shy_reference.png | P1 | 位置合わせ・背景処理は未実施 |
 | IMG-06 | 読書差分 | png/action_reading.png | P1 | 姿勢が大きく変わる場合は別絵 |
 | IMG-07 | 休憩・マグカップ | png/action_resting.png | P1 | 道具分離推奨 |
 | IMG-08 | うとうと/睡眠 | png/action_sleeping.png | P1 | 眠り姿勢に応じた別絵 |
 | IMG-09 | 部屋着 | png/outfit_loungewear.png | P2 | 同じ顔・体格 |
 | IMG-10 | パジャマ | png/outfit_pajamas.png | P2 | 同じ顔・体格 |
-| IMG-11 | 甘え表情 | png/expression_affectionate.png | P2 | 関係性後半 |
+| IMG-11 | **甘え（参考表現承認済み）** | reference/koharu_affectionate_reference.png | P2 | 位置合わせ・背景処理は未実施 |
 | IMG-12 | 販売用サムネイル | marketing/cover.png | P2 | 商用画像の表記要件を確認 |
 
 **注意:** MVPの行動エンジンは idle/reading/resting/sleeping を持つが、P0では不足モーションを既存PNGでフォールバックしてよい。機能上の行動状態と専用画像の完成を分離して管理する。
@@ -101,7 +101,7 @@ assets/
 
 ## 6. 制作順
 
-1. REF-01を複数案生成して**1体だけ正式採用**
+1. **REF-01は選定済み**。基準画像ファイルを保存し、生成日時・作成元を記録する
 2. REF-02、IMG-01〜04をマスター参照で生成
 3. ElectronのPNG表示・反応・自律行動を検証
 4. IMG-05〜08と簡易モーションを追加
@@ -110,7 +110,11 @@ assets/
 
 ## 7. 現時点で未決定
 - 使用する画像生成AI、モデル
-- キャラの最終デザイン
+- キャラの見た目は決定済み。Live2D用の自然立ちポーズ、PSDパーツの最終構成は未決定
 - 背景透過・パーツ分けの編集ツール
 - Cubism Editorで作業する人・作業方法
 - Live2Dモデルの最終対応範囲
+
+## 8. マスターデザインの変更管理
+
+[docs/14-koharu-master-design.md](14-koharu-master-design.md) を優先参照。デザインの採用と、画像のPNG化・透過処理・位置合わせ・Live2D PSD化は別の作業として管理する。元画像をGitHubへ実際に追加したときにのみ素材を「配置済み」にする。
