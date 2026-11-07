@@ -1,7 +1,7 @@
 # AI画像生成によるキャラクター制作指示書
 
 > 以前の「絵師への発注書」案に代わり、**AIにイラストを作らせるための仕様・手順書**として使用する。
-> 状態: 制作プラン / 最終デザイン未確定
+> 状態: デザイン承認済み / 画像の最終編集・PNG整備とLive2D化は未実施
 > プロジェクト: AI_desktop_kanojo / キャラ: 小春（仮）
 > 参照: [キャラ設定](10-character-profile.md) / [素材一覧](12-character-assets.md) / [Live2D計画](09-live2d-plan.md)
 
@@ -15,15 +15,15 @@
 - 明確に20代成人女性（仮に23歳）
 - 元気で明るい、人懐っこい。親密になると照れながら甘える
 - 華奢で細身、色白、自然で健康的な成人プロポーション
-- ライトブラウンのセミロングヘア、軽い外ハネ
+- ライトブラウン〜アッシュブラウンの**高いサイドポニーテール**、ふんわりした毛先、**淡いピンクの花飾りとクリームのリボン**
 - アンバー系の瞳、大人っぽさを保った親しみやすい笑顔
-- クリーム系カーディガン＋淡い色のトップス＋カジュアルなボトム
+- アイボリーのケーブル編みカーディガン、ピンクのリブ・フリル付きトップス、白いハイウエストショートパンツ、細いベルト、ピンクのリボンチョーカー、フリルソックス、ミント色スニーカー、腕時計
 - アニメ調・オリジナルキャラクター・シンプルな背景または透過
 - 全身、手指・足先まで画面内、前髪と顔が判別可能
 
 ## 3. 第一段階：キャラ基準画像を確立
 
-1. 同じ仕様から複数のデザイン候補を生成し、**1枚のマスターデザイン**を選ぶ。
+1. **マスターデザインは選定済み**。今後は [承認済みマスタービジュアル仕様](14-koharu-master-design.md) とユーザー選定画像をセットで参照する。
 2. マスター画像を基準に、髪型、瞳、服装、体型、アクセサリー、色を固定する。
 3. 正面全身／顔アップ／シンプルな配色見本を作り、デザインシートにまとめる。
 4. 以後の追加生成は**固定参照画像**を利用する。可能なら同じモデル・設定で制作し、生成設定を記録する。
@@ -34,9 +34,9 @@
 ```text
 Original anime-style character design, one clearly adult Japanese woman age 23,
 slender and delicate but natural adult proportions, fair skin with a healthy blush,
-medium-length light brown hair with subtly outward-curving tips, warm amber eyes,
-cheerful friendly smile, casual cream cardigan over a simple pastel top,
-comfortable everyday skirt or shorts, clean full-body front three-quarter view,
+warm light ash-brown hair in a high side ponytail with soft curls and wispy bangs,\na pale pink flower clip and ivory ribbon at the ponytail base, warm amber eyes,
+cheerful friendly smile, ivory cable-knit cardigan over a pastel-pink\nribbed ruffle-trimmed top with little bow, high-waisted ivory shorts with a slim belt,\npink ribbon choker, delicate wristwatch, frilly white socks and mint sneakers,
+clean full-body front three-quarter view,
 standing naturally with both hands clearly visible,
 feet fully visible, uncluttered plain background,
 clear outlines, consistent character design, soft balanced colors,
@@ -117,10 +117,76 @@ DLsiteは「AI生成作品」「AI一部利用」の区分を設け、**生成AI
 
 ## 8. AIへの依頼・生成を開始する前のチェック
 
-- [ ] キャラクターの基準デザインを確定
+- [x] キャラクターの基準デザインを確定（通常／照れ／甘えの演技も承認）
 - [ ] 使用するAIサービス・モデルの規約を確認
 - [ ] 生成画像を複数比較し基準立ち絵を1枚決める
 - [ ] 透過PNGを確認
 - [ ] 表情差分の顔一致チェック
 - [ ] Live2D用パーツ分け可能性を確認
 - [ ] 素材・モデル・SDKの商用配布条件を確認
+
+## 9. 確定版：追加生成・表情差分のプロンプト
+
+**重要:** 画像をゼロから生成するよりも、ユーザーが選定した**元画像を参照画像として与えて編集生成**する。文章のみで同一人物を完全再現できる保証はない。腕やポーズが変わる場合も顔・髪・衣装・靴・小物を変えない。
+
+### 共通固定指示（英語）
+
+```text
+Use the attached approved Koharu master character illustration as the
+canonical reference. Preserve exactly the same clearly adult 23-year-old
+woman, same face shape, slender adult proportions, fair skin, amber eyes,
+light ash-brown high side ponytail with wispy bangs and soft curls,
+pink flower hair ornament with cream ribbon, ivory cable-knit cardigan,
+pastel-pink ribbed ruffle-trimmed top with a small bow, pink ribbon choker,
+high-waisted ivory shorts and belt, wristwatch, frilly white socks,
+and mint-green sneakers. Retain her original soft pastel anime illustration
+style, warm friendly personality, linework, costume seams, accessories,
+proportions, colors and shading. A single full-body character, head to toe,
+clean plain white or transparent background, no text, no watermark.
+Do not redesign the character, alter her age or face, switch hairstyle,
+change outfits, remove accessories, or crop hands and feet.
+```
+
+### 通常表情（normal）
+
+```text
+Expression: open, cheerful and welcoming smile, lively sparkling amber eyes,
+subtle natural blush, energetic but not exaggerated. For the standard
+character reference, one raised hand in a friendly wave. Keep her
+approved master design unchanged.
+```
+
+### 照れ表情（shy）
+
+```text
+Expression: shy, softly smiling, cheeks more visibly blushed,
+eyes looking slightly downward, shoulders drawn in a little, both hands
+gently clasped in front of her. She remains a cheerful adult woman,
+not childlike. Preserve all approved character design details exactly.
+```
+
+### 甘え表情（affectionate）
+
+```text
+Expression: tender, affectionate and slightly bashful, warm upward glance,
+soft tiny pout or gentle smile, rosy cheeks, a subtle forward lean,
+both hands held close to her chest or cardigan collar in a sweet gesture.
+Keep it natural, wholesome and non-explicit; maintain the same
+approved adult character design exactly.
+```
+
+### Live2D用ニュートラルポーズ（rig-neutral）
+
+```text
+Keep the approved Koharu character design exactly. Change only the pose:
+front-facing or slight three-quarter view, shoulders relaxed, arms lowered
+naturally with hands visible and not obscuring the body, balanced feet,
+neutral cheerful expression. Clean full-body composition with enough space
+around hair, arms, hands and feet for future Live2D part separation.
+```
+
+### 差分のチェック
+- [ ] 参照元マスターの顔・髪型・髪飾り・衣装・足元が一致
+- [ ] 通常／照れ／甘えの違いが表情だけでも判別できる
+- [ ] ポーズごとに腕時計・ベルト・リボン等が消えたり増えたりしていない
+- [ ] Live2D用PSD・Cubismモデルが自動完成したと誤認しない
