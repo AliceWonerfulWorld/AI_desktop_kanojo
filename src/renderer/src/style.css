@@ -46,3 +46,24 @@ body.dragging #character {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+.greeting {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(240px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow: hidden;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  color: #243042;
+  background: #f7f4f0;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}

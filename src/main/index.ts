@@ -1,11 +1,14 @@
 import { app, Menu } from 'electron'
 import { join } from 'node:path'
+import { loadLaunchInfo } from './launch-info'
+import type { LaunchInfo } from '../shared/desktop-api'
 import { createDesktopWindow } from './desktop-window'
 
+let launchInfo: LaunchInfo = { firstLaunch: false }
 let desktop: ReturnType<typeof createDesktopWindow> | undefined
 
 function createWindow(): void {
-  desktop = createDesktopWindow()
+  desktop = createDesktopWindow(launchInfo)
   const { window } = desktop
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', (event) => event.preventDefault())
@@ -32,7 +35,8 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => desktop?.show())
   void app
     .whenReady()
-    .then(() => {
+    .then(async () => {
+      launchInfo = await loadLaunchInfo(app.getPath('userData'))
       Menu.setApplicationMenu(
         process.platform === 'darwin'
           ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'viewMenu' }])

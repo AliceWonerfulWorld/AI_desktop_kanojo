@@ -6,14 +6,15 @@ import {
   ipcMain,
   nativeImage,
   screen,
+  powerMonitor,
 } from 'electron'
 import type { IpcMainEvent, MenuItemConstructorOptions } from 'electron'
 import { join } from 'node:path'
 import trayIconPath from '../../resources/tray.png?asset'
-import { channels } from '../shared/desktop-api'
+import { channels, type LaunchInfo } from '../shared/desktop-api'
 import { fitToWorkArea, initialBounds } from './window-bounds'
 
-export function createDesktopWindow(): {
+export function createDesktopWindow(launchInfo: LaunchInfo): {
   window: BrowserWindow
   show: () => void
 } {
@@ -161,7 +162,9 @@ export function createDesktopWindow(): {
     refreshTray()
   })
 
-  const trusted = (event: IpcMainEvent): boolean =>
+  const trusted = (
+    event: Pick<IpcMainEvent, 'sender' | 'senderFrame'>,
+  ): boolean =>
     event.sender === window.webContents &&
     event.senderFrame === window.webContents.mainFrame
 
@@ -212,6 +215,20 @@ export function createDesktopWindow(): {
   const menuHandler = (event: IpcMainEvent): void => {
     if (trusted(event)) openMenu()
   }
+  ipcMain.handle(channels.launch, (event) => {
+    if (!trusted(event)) throw new Error('Untrusted launch-info request')
+    return launchInfo
+  })
+  const suspend = (): void => {
+    if (!window.webContents.isDestroyed())
+      window.webContents.send(channels.power, 'suspend')
+  }
+  const resume = (): void => {
+    if (!window.webContents.isDestroyed())
+      window.webContents.send(channels.power, 'resume')
+  }
+  powerMonitor.on('suspend', suspend)
+  powerMonitor.on('resume', resume)
   ipcMain.on(channels.pointer, pointerHandler)
   ipcMain.on(channels.drag, dragHandler)
   ipcMain.on(channels.menu, menuHandler)
@@ -234,6 +251,9 @@ export function createDesktopWindow(): {
   window.on('closed', () => {
     if (dragTimer) clearInterval(dragTimer)
     tray.destroy()
+    ipcMain.removeHandler(channels.launch)
+    powerMonitor.removeListener('suspend', suspend)
+    powerMonitor.removeListener('resume', resume)
     ipcMain.removeListener(channels.pointer, pointerHandler)
     ipcMain.removeListener(channels.drag, dragHandler)
     ipcMain.removeListener(channels.menu, menuHandler)
