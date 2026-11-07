@@ -236,8 +236,9 @@ async function initialize(): Promise<void> {
     removeRelationshipPreview = installRelationshipPreview(
       () => relationship.getSnapshot(),
       (value) => {
+        const next = new RelationshipModel(browserBehaviorClock.now, value)
         interactions?.cancelReaction()
-        relationship = new RelationshipModel(browserBehaviorClock.now, value)
+        relationship = next
         return relationship.getSnapshot()
       },
       () => displayGreeting(false),

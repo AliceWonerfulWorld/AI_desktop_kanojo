@@ -42,7 +42,7 @@ npm run start
 
 時間帯・挨拶の確認には開発用 `timePreview.setLocalTime(...)` を使用できます。OS時計は変更しません。[模擬時刻の手順・スリープ復帰・未確認事項](docs/18-time-policy-validation.md) を参照してください。
 
-キャラの有効画素上の短い左クリックで、行動に合うセリフと一時表情を表示します。ドラッグ終了・透明部・右クリックは交流扱いにしません。反応は約3秒、受付間隔は通常3秒・睡眠中15秒です。好感度や甘え反応は Issue #7 で対応します。[操作・行動別の確認手順](docs/19-interaction-validation.md) を参照してください。
+キャラの有効画素上の短い左クリックで、行動と関係段階に合うセリフ・一時表情を表示します。ドラッグ終了・透明部・右クリックは交流扱いにしません。反応は約3秒、受付間隔は通常3秒・睡眠中15秒です。親密度は60秒に1回まで1点増え、30/70で照れ・控えめな甘えへ変化します。未起動の減点はありません。今回はセッション内のみで、保存は Issue #8 です。[クリック操作](docs/19-interaction-validation.md) と [親密度の確認手順](docs/20-relationship-validation.md) を参照してください。
 
 ## コマンド
 
@@ -55,6 +55,7 @@ npm run start
 | `npm test`               | 作業領域と複数画面の境界テスト                                 |
 | `npm run test:smoke`     | ビルド後の Electron で分離設定・入力制御・トレイ処理を自動検証 |
 | `npm run test:character` | Electronで差分・フォールバック・拡大判定・解放を検証           |
+| `npm run test:styles`    | 開発/本番のCSS、開発用の親密度確認と段階別挨拶を検証           |
 | `npm run assets:test`    | 自作テストPNGを再生成（通常起動では不要）                      |
 | `npm run lint`           | ESLint                                                         |
 | `npm run format`         | Prettier で整形                                                |
