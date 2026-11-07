@@ -99,4 +99,4 @@ interface PersistedState {
 - Main の `desktop-window.ts` がトレイ、最前面切替、ドラッグ、画面内補正を所有する。
 - 作業領域とカーソル座標は DIP で統一し、ディスプレイ変更時に位置を補正する。
 - 透過はマウス移動転送と Renderer の形状判定を利用する試験機能。トレイから無効化できる。
-- 実装範囲・実機未確認事項は [検証記録](10-desktop-window-validation.md) を参照。
+- 実装範囲・実機未確認事項は [検証記録](13-desktop-window-validation.md) を参照。

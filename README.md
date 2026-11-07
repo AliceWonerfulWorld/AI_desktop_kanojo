@@ -1,11 +1,11 @@
 # AI Desktop Kanojo
 
-Windows 向けデスクトップ常駐アプリです。Electron + Vite + TypeScript を使い、透明な常駐ウィンドウとトレイ操作を実装しています。
+macOS（Apple Silicon）で先行開発し、将来 Windows にも対応するデスクトップ常駐アプリです。Electron + Vite + TypeScript を使い、透明な常駐ウィンドウとトレイ操作を実装しています。
 
 ## 開発環境
 
 - Git、Node.js **22.22.2** と付属の npm（`.nvmrc` に固定）
-- Windows Terminal / PowerShell。macOS でも同じ npm コマンドを利用可能
+- macOS のターミナル。Windows Terminal / PowerShell でも同じ npm コマンドを利用可能
 
 ```powershell
 git clone https://github.com/AliceWonerfulWorld/AI_desktop_kanojo.git
@@ -17,7 +17,7 @@ npm run dev
 
 主画面右下に仮キャラクターが表示されます。左ドラッグで移動、右クリックまたはトレイから表示/非表示・最前面・クリック透過・位置リセット・終了を操作できます。トレイは Windows の隠れているインジケーターに入る場合があります。
 
-透明領域のクリック透過は試験機能です。キャラの操作が戻らない場合は、トレイから透過を OFF にするか非表示にしてください。[検証結果・制限・Windows 手動確認手順](docs/10-desktop-window-validation.md) を参照してください。
+透明領域のクリック透過は試験機能です。キャラの操作が戻らない場合は、トレイから透過を OFF にするか非表示にしてください。[検証結果・制限・Windows 手動確認手順](docs/13-desktop-window-validation.md) を参照してください。
 
 設定はセッション内で保持します。専用設定画面は #9、位置や設定の再起動後の復元は #8 で対応します。ウィンドウを閉じると非表示になり、トレイの「終了」でプロセスを終了できます。同時起動は既存ウィンドウを再表示します。
 
