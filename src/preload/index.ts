@@ -2,6 +2,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { channels, type DesktopAPI } from '../shared/desktop-api'
 
 const api: DesktopAPI = {
+  getMemory: () => ipcRenderer.invoke(channels.memory),
+  recordInteraction: () => ipcRenderer.invoke(channels.interaction),
+  recordAction: (action) => ipcRenderer.send(channels.action, action),
   getLaunchInfo: () => ipcRenderer.invoke(channels.launch),
   onPowerState: (listener) => {
     const handler = (

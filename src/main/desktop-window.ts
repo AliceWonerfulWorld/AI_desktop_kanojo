@@ -7,19 +7,30 @@ import {
   nativeImage,
   screen,
   powerMonitor,
+  dialog,
 } from 'electron'
 import type { IpcMainEvent, MenuItemConstructorOptions } from 'electron'
 import { join } from 'node:path'
 import trayIconPath from '../../resources/tray.png?asset'
 import { channels, type LaunchInfo } from '../shared/desktop-api'
 import { fitToWorkArea, initialBounds } from './window-bounds'
+import type { MemorySession } from './memory-session'
+import { actions } from '../shared/character-state'
 
-export function createDesktopWindow(launchInfo: LaunchInfo): {
+export function createDesktopWindow(
+  launchInfo: LaunchInfo,
+  memory: () => MemorySession,
+  persist: () => void,
+  resetMemory: () => Promise<void>,
+): {
   window: BrowserWindow
   show: () => void
 } {
+  const saved = memory().snapshot().settings
+  const initial =
+    saved.windowBounds ?? initialBounds(screen.getPrimaryDisplay().workArea)
   const window = new BrowserWindow({
-    ...initialBounds(screen.getPrimaryDisplay().workArea),
+    ...fitToWorkArea(initial, screen.getDisplayMatching(initial).workArea),
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
@@ -28,7 +39,7 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
     maximizable: false,
     fullscreenable: false,
     skipTaskbar: true,
-    alwaysOnTop: true,
+    alwaysOnTop: saved.alwaysOnTop,
     acceptFirstMouse: true,
     show: false,
     title: 'AI Desktop Kanojo',
@@ -41,10 +52,25 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
   })
   const supportsForwarding =
     process.platform === 'win32' || process.platform === 'darwin'
-  let clickThrough = supportsForwarding
+  let clickThrough = supportsForwarding && saved.clickThrough
   let interactive = false
   let quitting = false
   let shown = false
+  let currentLaunchInfo = launchInfo
+  let interactionEligible = false
+  let resetPending = false
+  function rememberWindow(): void {
+    if (quitting) return
+    const settings = memory().snapshot().settings
+    const bounds = window.getBounds()
+    // Tiny OS work areas can temporarily shrink below save-schema bounds.
+    if (bounds.width >= 80 && bounds.height >= 80)
+      settings.windowBounds = bounds
+    settings.alwaysOnTop = window.isAlwaysOnTop()
+    settings.clickThrough = clickThrough
+    memory().settings(settings)
+    persist()
+  }
   let drag:
     | {
         cursor: Electron.Point
@@ -111,6 +137,7 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
         checked: window.isAlwaysOnTop(),
         click: (item) => {
           window.setAlwaysOnTop(item.checked)
+          rememberWindow()
           refreshTray()
         },
       },
@@ -121,6 +148,7 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
         enabled: supportsForwarding,
         click: (item) => {
           clickThrough = item.checked
+          rememberWindow()
           updateMouse()
           refreshTray()
         },
@@ -136,6 +164,43 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
       {
         label: '開発者ツール',
         click: () => window.webContents.openDevTools({ mode: 'detach' }),
+      },
+      {
+        label: '生活記憶・設定を初期化…',
+        click: async () => {
+          if (resetPending) return
+          resetPending = true
+          try {
+            const answer = await dialog.showMessageBox(window, {
+              type: 'warning',
+              title: '生活記憶を初期化',
+              message: '親密度・交流回数・利用時間・設定を消去しますか？',
+              detail: 'この操作は取り消せません。小春の画像は削除しません。',
+              buttons: ['キャンセル', '初期化する'],
+              defaultId: 0,
+              cancelId: 0,
+            })
+            if (answer.response !== 1) return
+            stopDrag()
+            interactionEligible = false
+            await resetMemory()
+            currentLaunchInfo = { firstLaunch: true }
+            clickThrough = supportsForwarding
+            window.setAlwaysOnTop(true)
+            window.setBounds(initialBounds(screen.getPrimaryDisplay().workArea))
+            rememberWindow()
+            window.webContents.reload()
+            show()
+          } catch (error) {
+            console.error('Memory reset failed', error)
+            dialog.showErrorBox(
+              '初期化できませんでした',
+              '保存先へのアクセスを確認してください。',
+            )
+          } finally {
+            resetPending = false
+          }
+        },
       },
       { type: 'separator' },
       { label: '終了', click: () => app.quit() },
@@ -180,6 +245,7 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
       return
     }
     if (drag || !window.isVisible()) return
+    interactionEligible = false
     drag = {
       cursor: screen.getCursorScreenPoint(),
       origin: window.getBounds(),
@@ -213,6 +279,7 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
     if (!trusted(event)) throw new Error('Untrusted drag-end request')
     sampleDrag()
     const result = !drag ? 'cancelled' : drag.moved ? 'drag' : 'click'
+    interactionEligible = result === 'click'
     stopDrag()
     return result
   })
@@ -226,13 +293,48 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
   }
   ipcMain.handle(channels.launch, (event) => {
     if (!trusted(event)) throw new Error('Untrusted launch-info request')
-    return launchInfo
+    return currentLaunchInfo
   })
+  ipcMain.handle(channels.memory, (event) => {
+    if (!trusted(event)) throw new Error('Untrusted memory request')
+    return memory().snapshot()
+  })
+  ipcMain.handle(channels.interaction, (event) => {
+    if (!trusted(event)) throw new Error('Untrusted interaction request')
+    if (
+      interactionEligible &&
+      window.isVisible() &&
+      !resetPending &&
+      !quitting
+    ) {
+      interactionEligible = false
+      const state = memory().interact()
+      persist()
+      return state
+    }
+    return memory().snapshot()
+  })
+  const actionHandler = (event: IpcMainEvent, value: unknown): void => {
+    if (
+      resetPending ||
+      quitting ||
+      !trusted(event) ||
+      !actions.some((action) => action === value)
+    )
+      return
+    memory().action(value as (typeof actions)[number])
+    persist()
+  }
+  ipcMain.on(channels.action, actionHandler)
   const suspend = (): void => {
+    interactionEligible = false
+    memory().power(true)
+    persist()
     if (!window.webContents.isDestroyed())
       window.webContents.send(channels.power, 'suspend')
   }
   const resume = (): void => {
+    memory().power(false)
     if (!window.webContents.isDestroyed())
       window.webContents.send(channels.power, 'resume')
   }
@@ -243,6 +345,8 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
   ipcMain.on(channels.menu, menuHandler)
   window.webContents.on('context-menu', openMenu)
   window.on('blur', stopDrag)
+  window.on('move', rememberWindow)
+  window.on('resize', rememberWindow)
   window.on('close', (event) => {
     if (!quitting) {
       event.preventDefault()
@@ -262,6 +366,9 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
     tray.destroy()
     ipcMain.removeHandler(channels.launch)
     ipcMain.removeHandler(channels.dragEnd)
+    ipcMain.removeHandler(channels.memory)
+    ipcMain.removeHandler(channels.interaction)
+    ipcMain.removeListener(channels.action, actionHandler)
     powerMonitor.removeListener('suspend', suspend)
     powerMonitor.removeListener('resume', resume)
     ipcMain.removeListener(channels.pointer, pointerHandler)
@@ -273,6 +380,7 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
     screen.removeListener('display-metrics-changed', keepOnScreen)
   })
   window.webContents.on('did-start-loading', () => {
+    interactionEligible = false
     interactive = false
     stopDrag()
   })

@@ -28,6 +28,7 @@ let removeBehaviorPreview: (() => void) | undefined
 let removePreview: (() => void) | undefined
 let removeRelationshipPreview: (() => void) | undefined
 let relationship = new RelationshipModel(browserBehaviorClock.now)
+let memoryRevision = 0
 
 function updateHitTest(x: number, y: number): void {
   lastPointer = { x, y }
@@ -73,6 +74,12 @@ function rendered(result: RenderResult): void {
 
 async function initialize(): Promise<void> {
   window.desktop.setPointerInteractive(false)
+  const savedMemory = await window.desktop.getMemory()
+  if (disposed) return
+  relationship = new RelationshipModel(
+    browserBehaviorClock.now,
+    savedMemory.affection,
+  )
   greeting = new GreetingPresenter(
     document.querySelector<HTMLParagraphElement>('#greeting')!,
     browserBehaviorClock,
@@ -83,7 +90,24 @@ async function initialize(): Promise<void> {
     browserBehaviorClock,
     Math.random,
     (event) => {
-      relationship.recordInteraction()
+      const currentRelationship = relationship
+      const revision = ++memoryRevision
+      void window.desktop
+        .recordInteraction()
+        .then((saved) => {
+          if (
+            !disposed &&
+            revision === memoryRevision &&
+            relationship === currentRelationship
+          )
+            relationship = new RelationshipModel(
+              browserBehaviorClock.now,
+              saved.affection,
+            )
+        })
+        .catch((error: unknown) =>
+          console.error('Interaction persistence failed', error),
+        )
       window.dispatchEvent(
         new CustomEvent('character-interaction', { detail: event }),
       )
@@ -190,6 +214,8 @@ async function initialize(): Promise<void> {
     renderer,
     (event) => {
       character.dataset.action = event.snapshot.current?.action ?? ''
+      if (event.snapshot.current)
+        window.desktop.recordAction(event.snapshot.current.action)
       publishTime()
       window.dispatchEvent(
         new CustomEvent('character-behavior', { detail: event }),
@@ -197,6 +223,11 @@ async function initialize(): Promise<void> {
     },
     {
       clock: browserBehaviorClock,
+      initialAction:
+        savedMemory.lastAction === 'sleeping' &&
+        timeContextAt(localTime.now()).period !== 'late-night'
+          ? undefined
+          : (savedMemory.lastAction ?? undefined),
       selectionPolicy: () => timeContextAt(localTime.now()),
     },
   )

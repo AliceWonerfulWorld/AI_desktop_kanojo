@@ -5,6 +5,9 @@ export const channels = {
   menu: 'desktop:menu',
   launch: 'desktop:launch',
   power: 'desktop:power',
+  memory: 'desktop:memory',
+  interaction: 'desktop:interaction',
+  action: 'desktop:action',
 } as const
 
 export interface LaunchInfo {
@@ -14,6 +17,9 @@ export type DragResult = 'click' | 'drag' | 'cancelled'
 export type PowerState = 'suspend' | 'resume'
 
 export interface DesktopAPI {
+  getMemory(): Promise<MemoryState>
+  recordInteraction(): Promise<MemoryState>
+  recordAction(action: Action): void
   getLaunchInfo(): Promise<LaunchInfo>
   onPowerState(listener: (state: PowerState) => void): () => void
   readonly versions: Readonly<{
@@ -26,3 +32,5 @@ export interface DesktopAPI {
   finishDrag(): Promise<DragResult>
   openMenu(): void
 }
+import type { MemoryState } from './memory-state'
+import type { Action } from './character-state'
