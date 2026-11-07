@@ -1,4 +1,6 @@
 import './style.css'
+import { PointerGesture } from '../../interaction/pointer-gesture'
+import { InteractionRenderer } from './interaction/interaction-renderer'
 import { timeContextAt } from '../../behavior/time-policy'
 import { createPowerLifecycle } from '../../behavior/power-lifecycle'
 import { GreetingPresenter, greetingFor } from './dialogue/greeting'
@@ -18,6 +20,8 @@ let removeTimePreview: (() => void) | undefined
 let activePointer: number | undefined
 let interactive: boolean | undefined
 let lastPointer: { x: number; y: number } | undefined
+let gesture: PointerGesture | undefined
+let interactions: InteractionRenderer | undefined
 let renderer: CharacterRenderer
 let behavior: BehaviorEngine | undefined
 let removeBehaviorPreview: (() => void) | undefined
@@ -34,15 +38,27 @@ function updateHitTest(x: number, y: number): void {
   }
 }
 
-function stopDrag(event?: PointerEvent): void {
-  if (activePointer === undefined) return
+function releasePointer(): void {
   const pointer = activePointer
   activePointer = undefined
-  if (character.hasPointerCapture(pointer))
+  if (pointer !== undefined && character.hasPointerCapture(pointer))
     character.releasePointerCapture(pointer)
   document.body.classList.remove('dragging')
-  window.desktop.setDragging(false)
-  if (event) updateHitTest(event.clientX, event.clientY)
+}
+function stopDrag(): void {
+  gesture?.cancel()
+  releasePointer()
+}
+function finishPointer(event: PointerEvent): void {
+  if (activePointer !== event.pointerId || event.button !== 0) return
+  const finished = gesture!.end(event)
+  releasePointer()
+  updateHitTest(event.clientX, event.clientY)
+  void finished
+    .then((accepted) => {
+      if (accepted && !disposed && !document.hidden) interactions?.react()
+    })
+    .catch((error: unknown) => console.error('Interaction failed', error))
 }
 
 function rendered(result: RenderResult): void {
@@ -55,7 +71,27 @@ function rendered(result: RenderResult): void {
 
 async function initialize(): Promise<void> {
   window.desktop.setPointerInteractive(false)
-  renderer = new PngCharacterRenderer(character, characterAssets, rendered)
+  greeting = new GreetingPresenter(
+    document.querySelector<HTMLParagraphElement>('#greeting')!,
+    browserBehaviorClock,
+  )
+  interactions = new InteractionRenderer(
+    new PngCharacterRenderer(character, characterAssets, rendered),
+    greeting,
+    browserBehaviorClock,
+    Math.random,
+    (event) =>
+      window.dispatchEvent(
+        new CustomEvent('character-interaction', { detail: event }),
+      ),
+  )
+  renderer = interactions
+  gesture = new PointerGesture({
+    hitTest: (x, y) => renderer.hitTest(x, y),
+    startDrag: () => window.desktop.setDragging(true),
+    cancelDrag: () => window.desktop.setDragging(false),
+    finishDrag: () => window.desktop.finishDrag(),
+  })
   document.addEventListener('mousemove', (event) =>
     updateHitTest(event.clientX, event.clientY),
   )
@@ -68,30 +104,45 @@ async function initialize(): Promise<void> {
     }
   })
   character.addEventListener('pointerdown', (event) => {
-    if (
-      event.button !== 0 ||
-      activePointer !== undefined ||
-      !renderer.hitTest(event.clientX, event.clientY)
-    )
-      return
-    character.setPointerCapture(event.pointerId)
+    if (!gesture!.begin(event)) return
     activePointer = event.pointerId
+    try {
+      character.setPointerCapture(event.pointerId)
+    } catch {
+      stopDrag()
+      return
+    }
     document.body.classList.add('dragging')
-    window.desktop.setDragging(true)
+  })
+  character.addEventListener('pointermove', (event) => {
+    for (const sample of event.getCoalescedEvents?.() ?? [])
+      gesture?.move(sample)
+    gesture?.move(event)
   })
   // Prevent the native context-menu event on transparent pixels, even with click-through disabled.
   character.addEventListener('contextmenu', (event) => {
     event.preventDefault()
+    stopDrag()
     if (renderer.hitTest(event.clientX, event.clientY))
       window.desktop.openMenu()
   })
-  character.addEventListener('pointerup', stopDrag)
+  character.addEventListener('pointerup', finishPointer)
   character.addEventListener('pointercancel', () => stopDrag())
-  character.addEventListener('lostpointercapture', () => stopDrag())
+  character.addEventListener('lostpointercapture', () => {
+    if (activePointer !== undefined) stopDrag()
+  })
   window.addEventListener('blur', () => stopDrag())
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopDrag()
+      interactions?.cancelReaction()
+      greeting?.hide()
+    }
+  })
   window.addEventListener('pagehide', () => {
     disposed = true
     stopDrag()
+    gesture?.dispose()
     removePowerListener?.()
     removeTimePreview?.()
     greeting?.dispose()
@@ -114,10 +165,6 @@ async function initialize(): Promise<void> {
   await renderer.setState({ action: 'idle', expression: 'neutral' })
   const launchInfo = await window.desktop.getLaunchInfo()
   if (disposed) return
-  greeting = new GreetingPresenter(
-    document.querySelector<HTMLParagraphElement>('#greeting')!,
-    browserBehaviorClock,
-  )
   const publishTime = (): void => {
     const context = timeContextAt(localTime.now())
     document.body.dataset.timePeriod = context.period
@@ -146,10 +193,13 @@ async function initialize(): Promise<void> {
   const powerLifecycle = createPowerLifecycle(behavior)
   removePowerListener = window.desktop.onPowerState((state) => {
     if (!powerLifecycle(state)) return
-    if (state === 'suspend') greeting?.hide()
-    else {
+    if (state === 'suspend') {
+      stopDrag()
+      interactions?.cancelReaction()
+      greeting?.hide()
+    } else {
       publishTime()
-      if (!document.hidden) displayGreeting(false)
+      if (!document.hidden && document.hasFocus()) displayGreeting(false)
     }
   })
   behavior.start()

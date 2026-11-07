@@ -15,6 +15,7 @@ export function greetingFor(period: TimePeriod, firstLaunch: boolean): string {
 export class GreetingPresenter {
   private revision = 0
   private disposed = false
+  private priority: 'passive' | 'interaction' | undefined
   private cancel: (() => void) | undefined
   private readonly view: Pick<HTMLElement, 'hidden' | 'textContent'>
   private readonly clock: BehaviorClock
@@ -25,20 +26,31 @@ export class GreetingPresenter {
     this.view = view
     this.clock = clock
   }
-  show(text: string): void {
-    if (this.disposed) return
+  show(
+    text: string,
+    durationMs = 5000,
+    priority: 'passive' | 'interaction' = 'passive',
+  ): boolean {
+    if (
+      this.disposed ||
+      (priority === 'passive' && this.priority === 'interaction')
+    )
+      return false
     this.hide()
+    this.priority = priority
     const revision = this.revision
     this.view.textContent = text
     this.view.hidden = false
     this.cancel = this.clock.schedule(() => {
       if (revision === this.revision) this.hide()
-    }, 5000)
+    }, durationMs)
+    return true
   }
   hide(): void {
     this.revision++
     this.cancel?.()
     this.cancel = undefined
+    this.priority = undefined
     this.view.hidden = true
     this.view.textContent = ''
   }
