@@ -95,7 +95,9 @@ test('scales to contain and bottom aligns without treating letterboxing as chara
 
 test('committed PNG fixtures match provenance and preserve an interior transparent gap', () => {
   const manifest = JSON.parse(
-    readFileSync(new URL('../assets/character/manifest.json', import.meta.url)),
+    readFileSync(
+      new URL('../assets/character/test/manifest.json', import.meta.url),
+    ),
   )
   assert.equal(manifest.assets.length, 4)
   for (const asset of manifest.assets) {

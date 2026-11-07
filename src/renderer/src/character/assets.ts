@@ -1,16 +1,18 @@
 import manifest from '../../../../assets/character/manifest.json'
-import neutral from '../../../../assets/character/test/neutral.png'
-import smile from '../../../../assets/character/test/smile.png'
-import sleepy from '../../../../assets/character/test/sleepy.png'
-import surprised from '../../../../assets/character/test/surprised.png'
+import neutral from '../../../../assets/character/koharu/png/koharu_normal_4K.png'
+import shy from '../../../../assets/character/koharu/png/koharu_shy_4K.png'
+import sleepy from '../../../../assets/character/koharu/png/koharu_sleeping_4K.png'
+import surprised from '../../../../assets/character/koharu/png/koharu_suprising_4K.png'
+import affectionate from '../../../../assets/character/koharu/png/standing_affectionate_4K.png'
 import { isCharacterVisualState } from '../../../shared/character-state'
 import type { CharacterAsset } from './asset-selection'
 
 const urls: Record<string, string> = {
-  'test/neutral.png': neutral,
-  'test/smile.png': smile,
-  'test/sleepy.png': sleepy,
-  'test/surprised.png': surprised,
+  'koharu/png/koharu_normal_4K.png': neutral,
+  'koharu/png/koharu_shy_4K.png': shy,
+  'koharu/png/koharu_sleeping_4K.png': sleepy,
+  'koharu/png/koharu_suprising_4K.png': surprised,
+  'koharu/png/standing_affectionate_4K.png': affectionate,
 }
 
 // Manifest is the source of state mapping and provenance; only explicitly bundled files can load.

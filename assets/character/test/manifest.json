@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "collection": "geometric-test-fixtures-not-koharu",
+  "source": "scripts/generate-test-character.cjs",
+  "createdOn": "2026-11-07",
+  "aiUsage": "Procedural source code authored with Codex. No image generation model or external artwork used.",
+  "license": "MIT; applies only to these test PNGs and generator; see LICENSE-test-assets.txt",
+  "assets": [
+    {
+      "id": "test-neutral",
+      "file": "test/neutral.png",
+      "status": "test-only",
+      "action": "idle",
+      "expression": "neutral"
+    },
+    {
+      "id": "test-smile",
+      "file": "test/smile.png",
+      "status": "test-only",
+      "action": "idle",
+      "expression": "smile"
+    },
+    {
+      "id": "test-sleepy",
+      "file": "test/sleepy.png",
+      "status": "test-only",
+      "action": "idle",
+      "expression": "sleepy"
+    },
+    {
+      "id": "test-surprised",
+      "file": "test/surprised.png",
+      "status": "test-only",
+      "action": "idle",
+      "expression": "surprised"
+    }
+  ],
+  "productionStatus": {
+    "approvedReferences": "not-in-repository",
+    "koharuRuntimeImages": "not-produced",
+    "reading": "not-produced",
+    "resting": "not-produced",
+    "sleeping": "not-produced",
+    "shy": "not-produced",
+    "affectionate": "not-produced"
+  }
+}
