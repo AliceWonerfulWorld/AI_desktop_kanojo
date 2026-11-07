@@ -83,7 +83,9 @@ app.on('browser-window-created', (_event, window) => {
         processType: typeof process,
         background: getComputedStyle(document.body).backgroundColor,
         hasCanvas: !!document.querySelector('#character canvas'),
-        previewType: typeof window.characterPreview
+        previewType: typeof window.characterPreview,
+        behaviorPreviewType: typeof window.behaviorPreview,
+        autonomousAction: document.querySelector('#character').dataset.action
       })`)
       assert.match(state.status, /接続を確認しました/)
       assert.equal(state.electron, process.versions.electron)
@@ -95,6 +97,13 @@ app.on('browser-window-created', (_event, window) => {
         state.previewType,
         'undefined',
         'development preview must not exist in production',
+      )
+
+      assert.equal(state.behaviorPreviewType, 'undefined')
+      assert.equal(
+        state.autonomousAction,
+        'idle',
+        'production renderer starts autonomous behavior',
       )
 
       const ipc = async (channel, expression) => {

@@ -7,7 +7,12 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "allowImportingTsExtensions": true
   },
-  "include": ["src/renderer/**/*.ts", "src/shared/**/*.ts"]
+  "include": [
+    "src/renderer/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/behavior/**/*.ts"
+  ]
 }

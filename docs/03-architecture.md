@@ -106,3 +106,10 @@ interface PersistedState {
 - `CharacterRenderer` の setState / hitTest / dispose 経由で状態更新と入力判定を行う。
 - PNG実装は素材台帳の状態マッピングとフォールバック、元画像のアルファ判定を所有する。
 - 実装範囲・検証・Live2Dへの交換境界は [MVP-03 検証記録](15-character-renderer-validation.md) を参照。
+
+## 9. 自律行動エンジン（MVP-04）
+- `src/behavior/behavior-engine.ts` は Electron / DOM / PNG / 会話文から独立し、時計と乱数を注入して動作する。
+- 予約は単発1個に限定し、停止・一時停止・再開・解放で古いコールバックを無効化する。
+- Renderer の `behavior/runtime.ts` が意味上の行動通知を共通描画APIへ変換する。会話・アニメーション用には `character-behavior` 通知を提供する。
+- 経過時間は単調時計。保存用UTC・時刻帯ポリシーとは分離し、時刻帯対応は #5 へ残す。
+- 詳細は [自律行動検証記録](17-behavior-engine-validation.md) を参照。

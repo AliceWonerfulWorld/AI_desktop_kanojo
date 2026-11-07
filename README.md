@@ -1,6 +1,6 @@
 # AI Desktop Kanojo
 
-macOS（Apple Silicon）で先行開発し、将来 Windows にも対応するデスクトップ常駐アプリです。Electron + Vite + TypeScript を使い、透明な常駐ウィンドウ、トレイ操作、PNG画像差分の描画基盤を実装しています。
+macOS（Apple Silicon）で先行開発し、将来 Windows にも対応するデスクトップ常駐アプリです。Electron + Vite + TypeScript を使い、透明な常駐ウィンドウ、トレイ操作、PNG画像差分と自律行動エンジンを実装しています。
 
 ## 開発環境
 
@@ -19,6 +19,8 @@ npm run dev
 
 透明領域のクリック透過は試験機能です。キャラの操作が戻らない場合は、トレイから透過を OFF にするか非表示にしてください。[検証結果・制限・Windows 手動確認手順](docs/13-desktop-window-validation.md) を参照してください。
 
+起動後は待機・読書・休憩・睡眠を自律的に切り替えます。継続時間は20〜300秒の範囲で、専用画像がない行動は既存PNGへ代替表示します。実時間5分で複数遷移する保証はありません。時刻帯別の行動選択は Issue #5 で対応します。
+
 設定はセッション内で保持します。専用設定画面は #9、位置や設定の再起動後の復元は #8 で対応します。ウィンドウを閉じると非表示になり、トレイの「終了」でプロセスを終了できます。同時起動は既存ウィンドウを再表示します。
 
 Renderer の変更は HMR で反映されます。Main / Preload の変更が反映されない場合は、トレイから終了して再起動してください。
@@ -33,6 +35,8 @@ npm run start
 `check` は ESLint・Prettier・境界テスト・型チェック・ビルドを実行します。`start` はビルド済みのアプリを起動します。生成先は `out/` です。インストーラーや配布用 exe は [Issue #10](https://github.com/AliceWonerfulWorld/AI_desktop_kanojo/issues/10) で対応します。
 
 開発時の表情・行動切替は [描画検証記録](docs/15-character-renderer-validation.md) の Console 手順を使用します。本番の固定操作UIは追加しません。素材の出典・権利・制作状態は [素材台帳](assets/character/manifest.md) に記録しています。
+
+自律動作の通知・一時停止・再開の確認は [行動エンジン検証記録](docs/17-behavior-engine-validation.md) を参照してください。画像だけの手動切替前には `behaviorPreview.pause()` で自律遷移を一時停止します。
 
 ## コマンド
 

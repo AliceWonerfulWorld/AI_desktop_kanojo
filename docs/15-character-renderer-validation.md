@@ -49,6 +49,8 @@ await characterPreview.setState({ action: 'sleeping', expression: 'shy' })
 characterPreview.getState()
 ```
 
+MVP-04以降は自律遷移も描画を更新するため、画像だけを確認する際は先に `behaviorPreview.pause()` を実行する。
+
 このオブジェクトは開発時だけ提供し、本番の `npm run build` / `npm run start` には存在しない。常駐画面に固定のテスト操作 UI は置かない。`normal` という入力は受け付けず `neutral` を使う。`getState()` はプレビューで最後に適用した結果を返す（最初のプレビュー操作前は undefined）。
 
 ## 自動検証（ローカル macOS）
