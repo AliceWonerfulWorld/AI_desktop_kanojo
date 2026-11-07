@@ -7,7 +7,13 @@ const { app, Tray, Menu, screen, ipcMain, powerMonitor } = require('electron')
 
 const testUserData = mkdtempSync(join(tmpdir(), 'kanojo-smoke-'))
 app.setPath('userData', testUserData)
-app.on('quit', () => rmSync(testUserData, { recursive: true, force: true }))
+app.on('quit', () => {
+  try {
+    rmSync(testUserData, { recursive: true, force: true })
+  } catch (error) {
+    console.warn('Temporary userData cleanup deferred:', error.code)
+  }
+})
 
 async function waitFor(condition) {
   for (let attempt = 0; attempt < 150; attempt++) {
@@ -54,6 +60,7 @@ const timeout = setTimeout(() => {
   console.error('Smoke check timed out')
   app.exit(1)
 }, 30000)
+app.once('quit', () => clearTimeout(timeout))
 
 app.on('browser-window-created', (_event, window) => {
   let ignoringMouse = false
@@ -296,7 +303,6 @@ app.on('browser-window-created', (_event, window) => {
         'Smoke check passed: secure transparent renderer, hit regions, IPC, tray menus, recovery',
       )
       completed = true
-      clearTimeout(timeout)
       // Exercise the real Quit path, including native tray and window cleanup.
       item('終了').click()
     } catch (error) {
