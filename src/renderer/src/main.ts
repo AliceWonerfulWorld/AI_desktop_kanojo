@@ -101,7 +101,7 @@ async function initialize(): Promise<void> {
 }
 
 void initialize().catch((error: unknown) => {
-  window.desktop.setPointerInteractive(false)
+  window.desktop?.setPointerInteractive(false)
   status.textContent =
     '初期化に失敗しました。トレイから開発者ツールを開いてください。'
   console.error('Renderer initialization failed', error)

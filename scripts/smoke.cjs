@@ -1,13 +1,13 @@
 const assert = require('node:assert/strict')
 const { once } = require('node:events')
-const { app, Tray, screen, ipcMain } = require('electron')
+const { app, Tray, Menu, screen, ipcMain } = require('electron')
 
 async function waitFor(condition) {
   for (let attempt = 0; attempt < 150; attempt++) {
-    if (condition()) return
+    if (await condition()) return
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
-  assert.ok(condition(), 'Native window visibility did not settle')
+  assert.ok(await condition(), 'Window/renderer condition did not settle')
 }
 
 let completed = false
@@ -18,6 +18,20 @@ app.on('will-quit', () => {
     )
     app.exit(1)
   }
+})
+
+let popups = 0
+const buildMenu = Menu.buildFromTemplate
+Menu.buildFromTemplate = (...args) => {
+  const built = buildMenu(...args)
+  built.popup = () => {
+    popups++
+  }
+  return built
+}
+let dragMessages = 0
+ipcMain.on('desktop:drag', () => {
+  dragMessages++
 })
 
 let menu
@@ -49,6 +63,11 @@ app.on('browser-window-created', (_event, window) => {
     try {
       if (!window.isVisible()) await once(window, 'ready-to-show')
       await waitFor(() => window.isVisible())
+      await waitFor(() =>
+        window.webContents.executeJavaScript(
+          "document.querySelector('#character').dataset.ready === 'true'",
+        ),
+      )
       const preferences = window.webContents.getLastWebPreferences()
       assert.equal(preferences.nodeIntegration, false)
       assert.equal(preferences.contextIsolation, true)
@@ -63,16 +82,20 @@ app.on('browser-window-created', (_event, window) => {
         requireType: typeof require,
         processType: typeof process,
         background: getComputedStyle(document.body).backgroundColor,
-        marginHit: !!document.elementFromPoint(10, 10)?.closest('[data-hit]'),
-        characterHit: !!document.elementFromPoint(innerWidth / 2, innerHeight * 0.6)?.closest('[data-hit]')
+        hasCanvas: !!document.querySelector('#character canvas'),
+        previewType: typeof window.characterPreview
       })`)
       assert.match(state.status, /接続を確認しました/)
       assert.equal(state.electron, process.versions.electron)
       assert.equal(state.requireType, 'undefined')
       assert.equal(state.processType, 'undefined')
       assert.equal(state.background, 'rgba(0, 0, 0, 0)')
-      assert.equal(state.marginHit, false)
-      assert.equal(state.characterHit, true)
+      assert.equal(state.hasCanvas, true)
+      assert.equal(
+        state.previewType,
+        'undefined',
+        'development preview must not exist in production',
+      )
 
       const ipc = async (channel, expression) => {
         const delivered = once(ipcMain, channel)
@@ -81,18 +104,64 @@ app.on('browser-window-created', (_event, window) => {
       }
       const forwarding =
         process.platform === 'win32' || process.platform === 'darwin'
-      await ipc(
-        'desktop:pointer',
-        'window.desktop.setPointerInteractive(false)',
+      const moveTo = async (x, y) =>
+        ipc(
+          'desktop:pointer',
+          `document.dispatchEvent(new MouseEvent('mousemove', {clientX:${x},clientY:${y},bubbles:true}))`,
+        )
+      await moveTo(10, 10)
+      assert.equal(
+        ignoringMouse,
+        forwarding,
+        'transparent image margins pass through',
       )
-      assert.equal(ignoringMouse, forwarding)
-      await ipc('desktop:pointer', 'window.desktop.setPointerInteractive(true)')
-      assert.equal(ignoringMouse, false)
+      await moveTo(170, 312)
+      assert.equal(ignoringMouse, false, 'opaque PNG pixels take input')
+      await moveTo(170, 480)
+      assert.equal(
+        ignoringMouse,
+        forwarding,
+        'transparent gap inside PNG rectangle passes through',
+      )
+      await moveTo(143, 480)
+      assert.equal(
+        ignoringMouse,
+        false,
+        'return from transparent gap restores input',
+      )
       await ipc(
         'desktop:pointer',
         'window.desktop.setPointerInteractive("invalid")',
       )
       assert.equal(ignoringMouse, false, 'invalid payload must be ignored')
+      const dragsBefore = dragMessages
+      const menusBefore = popups
+      await window.webContents.executeJavaScript(`{
+        const character = document.querySelector('#character');
+        character.dispatchEvent(new PointerEvent('pointerdown', {button:0,clientX:170,clientY:480,bubbles:true}));
+        character.dispatchEvent(new MouseEvent('contextmenu', {clientX:170,clientY:480,bubbles:true,cancelable:true}));
+      }`)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      assert.equal(
+        dragMessages,
+        dragsBefore,
+        'transparent PNG pixels must never begin a drag',
+      )
+      assert.equal(
+        popups,
+        menusBefore,
+        'transparent PNG pixels must never open a character menu',
+      )
+      await ipc(
+        'desktop:menu',
+        `document.querySelector('#character').dispatchEvent(new MouseEvent('contextmenu', {clientX:170,clientY:312,bubbles:true,cancelable:true}))`,
+      )
+      assert.equal(
+        popups,
+        menusBefore + 1,
+        'opaque PNG pixels keep the context menu',
+      )
+
       const originalCursor = screen.getCursorScreenPoint
       const beforeDrag = window.getBounds()
       const areaForDrag = screen.getDisplayMatching(beforeDrag).workArea

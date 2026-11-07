@@ -22,6 +22,10 @@ export class PngCharacterRenderer implements CharacterRenderer {
     private readonly onRendered: (result: RenderResult) => void = () => {},
   ) {
     this.canvas.setAttribute('aria-hidden', 'true')
+    this.canvas.style.width = '100%'
+    this.canvas.style.height = '100%'
+    this.canvas.style.display = 'block'
+    this.canvas.style.pointerEvents = 'none'
     host.append(this.canvas)
     this.observer = new ResizeObserver(() => this.draw())
     this.observer.observe(host)
