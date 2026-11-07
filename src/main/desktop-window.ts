@@ -60,6 +60,7 @@ export function createDesktopWindow(
   let interactionEligible = false
   let resetPending = false
   function rememberWindow(): void {
+    if (quitting) return
     const settings = memory().snapshot().settings
     const bounds = window.getBounds()
     // Tiny OS work areas can temporarily shrink below save-schema bounds.
@@ -300,7 +301,12 @@ export function createDesktopWindow(
   })
   ipcMain.handle(channels.interaction, (event) => {
     if (!trusted(event)) throw new Error('Untrusted interaction request')
-    if (interactionEligible && window.isVisible() && !resetPending) {
+    if (
+      interactionEligible &&
+      window.isVisible() &&
+      !resetPending &&
+      !quitting
+    ) {
       interactionEligible = false
       const state = memory().interact()
       persist()
@@ -311,6 +317,7 @@ export function createDesktopWindow(
   const actionHandler = (event: IpcMainEvent, value: unknown): void => {
     if (
       resetPending ||
+      quitting ||
       !trusted(event) ||
       !actions.some((action) => action === value)
     )

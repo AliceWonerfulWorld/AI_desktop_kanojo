@@ -28,6 +28,7 @@ let removeBehaviorPreview: (() => void) | undefined
 let removePreview: (() => void) | undefined
 let removeRelationshipPreview: (() => void) | undefined
 let relationship = new RelationshipModel(browserBehaviorClock.now)
+let memoryRevision = 0
 
 function updateHitTest(x: number, y: number): void {
   lastPointer = { x, y }
@@ -90,10 +91,15 @@ async function initialize(): Promise<void> {
     Math.random,
     (event) => {
       const currentRelationship = relationship
+      const revision = ++memoryRevision
       void window.desktop
         .recordInteraction()
         .then((saved) => {
-          if (!disposed && relationship === currentRelationship)
+          if (
+            !disposed &&
+            revision === memoryRevision &&
+            relationship === currentRelationship
+          )
             relationship = new RelationshipModel(
               browserBehaviorClock.now,
               saved.affection,

@@ -121,7 +121,8 @@ if (!app.requestSingleInstanceLock()) {
         if (checkpoint) clearInterval(checkpoint)
         if (saveTimer) clearTimeout(saveTimer)
         void (async () => {
-          await resetFinished
+          // A failed reset must not prevent saving the remaining in-memory state on quit.
+          await resetFinished?.catch(() => {})
           memory.power(true)
           await store.save(memory.snapshot())
         })()

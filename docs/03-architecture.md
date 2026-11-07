@@ -1,5 +1,7 @@
 # 技術設計（初期案）
 
+> MVP-08実装: 保存スキーマの正本は `src/shared/memory-state.ts`。Mainの `MemorySession` が稼働時間・交流・設定を所有し、`MemoryStore` が検証・一時ファイル置換・バックアップ復旧を担う。以下の初期状態モデル案と区別する。[保存と検証](22-memory-validation.md) を参照。
+
 > 技術選定は暫定。最初の技術検証で変更可能。
 
 ## 1. 技術スタック
