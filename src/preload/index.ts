@@ -2,6 +2,17 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { channels, type DesktopAPI } from '../shared/desktop-api'
 
 const api: DesktopAPI = {
+  getPresentation: () => ipcRenderer.invoke(channels.presentation),
+  onPresentation: (listener) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      state: import('../shared/presentation').PresentationState,
+    ): void => listener(state)
+    ipcRenderer.on(channels.presentation, handler)
+    return () => {
+      ipcRenderer.removeListener(channels.presentation, handler)
+    }
+  },
   getMemory: () => ipcRenderer.invoke(channels.memory),
   recordInteraction: () => ipcRenderer.invoke(channels.interaction),
   recordAction: (action) => ipcRenderer.send(channels.action, action),

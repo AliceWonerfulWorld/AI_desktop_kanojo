@@ -19,6 +19,8 @@ export interface MemoryState {
     clickThrough: boolean
     scale: number
     spontaneousDialogue: boolean
+    showOnStartup: boolean
+    paused: boolean
     windowBounds: { x: number; y: number; width: number; height: number } | null
   }
 }
@@ -39,6 +41,8 @@ export function defaultMemory(): MemoryState {
       clickThrough: true,
       scale: 1,
       spontaneousDialogue: true,
+      showOnStartup: true,
+      paused: false,
       windowBounds: null,
     },
   }
@@ -65,6 +69,10 @@ export function validateMemory(value: unknown): MemoryState {
     typeof s.settings.alwaysOnTop !== 'boolean' ||
     typeof s.settings.clickThrough !== 'boolean' ||
     typeof s.settings.spontaneousDialogue !== 'boolean' ||
+    (s.settings.showOnStartup !== undefined &&
+      typeof s.settings.showOnStartup !== 'boolean') ||
+    (s.settings.paused !== undefined &&
+      typeof s.settings.paused !== 'boolean') ||
     !number(s.settings.scale, 0.5, 2)
   )
     throw new Error('Invalid save fields')
@@ -94,6 +102,8 @@ export function validateMemory(value: unknown): MemoryState {
       clickThrough: s.settings.clickThrough,
       scale: s.settings.scale,
       spontaneousDialogue: s.settings.spontaneousDialogue,
+      showOnStartup: s.settings.showOnStartup ?? true,
+      paused: s.settings.paused ?? false,
       windowBounds: b
         ? { x: b.x, y: b.y, width: b.width, height: b.height }
         : null,

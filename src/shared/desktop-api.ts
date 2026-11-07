@@ -8,6 +8,11 @@ export const channels = {
   memory: 'desktop:memory',
   interaction: 'desktop:interaction',
   action: 'desktop:action',
+  presentation: 'desktop:presentation',
+  settingsGet: 'settings:get',
+  settingsUpdate: 'settings:update',
+  settingsVisible: 'settings:visible',
+  settingsChanged: 'settings:changed',
 } as const
 
 export interface LaunchInfo {
@@ -17,6 +22,8 @@ export type DragResult = 'click' | 'drag' | 'cancelled'
 export type PowerState = 'suspend' | 'resume'
 
 export interface DesktopAPI {
+  getPresentation(): Promise<PresentationState>
+  onPresentation(listener: (state: PresentationState) => void): () => void
   getMemory(): Promise<MemoryState>
   recordInteraction(): Promise<MemoryState>
   recordAction(action: Action): void
@@ -34,3 +41,4 @@ export interface DesktopAPI {
 }
 import type { MemoryState } from './memory-state'
 import type { Action } from './character-state'
+import type { PresentationState } from './presentation'

@@ -80,6 +80,9 @@ export class GreetingPresenter {
     this.view.hidden = true
     this.view.textContent = ''
   }
+  hidePassive(): void {
+    if (this.priority === 'passive') this.hide()
+  }
   dispose(): void {
     this.hide()
     this.disposed = true
