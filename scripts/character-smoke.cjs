@@ -45,6 +45,8 @@ void (async () => {
     const { PngCharacterRenderer } = await import('/src/character/png-renderer.ts')
     const { characterAssets } = await import('/src/character/assets.ts')
     const { installCharacterPreview } = await import('/src/character/preview.ts')
+    const { createBehaviorRuntime } = await import('/src/behavior/runtime.ts')
+    const { installBehaviorPreview } = await import('/src/behavior/preview.ts')
     const host = document.createElement('div')
     host.style.cssText = 'position:fixed;left:0;top:0;width:340px;height:520px'
     document.body.append(host)
@@ -85,6 +87,42 @@ void (async () => {
     const allFailed = await empty.setState({action:'idle',expression:'neutral'})
     const failedHit = empty.hitTest(170,312)
     empty.dispose()
+    const clock = {
+      time: 0, tasks: new Map(),
+      now() { return this.time },
+      schedule(callback, delay) {
+        const token = {}; this.tasks.set(token, { callback, deadline: this.time + delay });
+        return () => this.tasks.delete(token)
+      },
+      advance(ms) {
+        this.time += ms;
+        const due = [...this.tasks].filter(([, task]) => task.deadline <= this.time);
+        for (const [token, task] of due) { this.tasks.delete(token); task.callback() }
+      }
+    }
+    const samples = [0, 0, 0, 0.6, 0, 0.99, 0]
+    const notifications = []
+    const pendingFrames = []
+    const behaviorFrames = []
+    const runtime = createBehaviorRuntime({
+      setState(state) { const task = renderer.setState(state); pendingFrames.push(task); return task },
+      hitTest: (x,y) => renderer.hitTest(x,y), dispose: () => renderer.dispose(),
+    }, event => notifications.push(event), { clock, random: () => samples.shift() })
+    const removeBehavior = installBehaviorPreview(runtime)
+    const captureBehaviorFrame = async () => {
+      const frames = await Promise.all(pendingFrames.splice(0));
+      behaviorFrames.push({ result: frames.at(-1), pixels: host.querySelector('canvas').toDataURL() })
+    }
+    runtime.start(); await captureBehaviorFrame();
+    for (const elapsed of [20000, 60000, 30000]) { clock.advance(elapsed); await captureBehaviorFrame() }
+    window.behaviorPreview.pause(); window.behaviorPreview.pause();
+    const pausedTimers = clock.tasks.size;
+    clock.advance(900000);
+    window.behaviorPreview.resume(); window.behaviorPreview.resume();
+    const resumedTimers = clock.tasks.size;
+    removeBehavior(); runtime.dispose();
+    const disposedTimers = clock.tasks.size;
+    const behaviorPreviewAfter = typeof window.behaviorPreview;
     remove()
     renderer.dispose()
     const disposedHit = renderer.hitTest(170,312)
@@ -93,7 +131,7 @@ void (async () => {
     pendingRenderer.dispose()
     const disposedDuringLoad = await pending
     const afterDispose = await renderer.setState({action:'idle',expression:'smile'})
-    return {disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
+    return {behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
   })()`)
   assert.equal(
     new Set(results.snapshots.slice(0, 4).map((entry) => entry.pixels)).size,
@@ -123,6 +161,27 @@ void (async () => {
   assert.deepEqual(results.recovered.unavailable, ['missing'])
   assert.equal(results.allFailed.assetId, null)
   assert.equal(results.failedHit, false)
+  assert.deepEqual(
+    results.behaviorFrames.map((frame) => frame.result.state.action),
+    ['idle', 'reading', 'resting', 'sleeping'],
+  )
+  assert.deepEqual(
+    results.behaviorFrames.map((frame) => frame.result.state.expression),
+    ['neutral', 'neutral', 'smile', 'sleepy'],
+  )
+  assert.equal(
+    new Set(results.behaviorFrames.map((frame) => frame.pixels)).size,
+    3,
+  )
+  assert.equal(
+    results.notifications.filter((event) => event.reason === 'transition')
+      .length,
+    3,
+  )
+  assert.equal(results.pausedTimers, 0)
+  assert.equal(results.resumedTimers, 1)
+  assert.equal(results.disposedTimers, 0)
+  assert.equal(results.behaviorPreviewAfter, 'undefined')
   assert.equal(results.disposedDuringLoad.applied, false)
   assert.equal(results.disposedHit, false)
   assert.equal(results.afterDispose.applied, false)

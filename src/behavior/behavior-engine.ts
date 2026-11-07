@@ -82,6 +82,13 @@ export class BehaviorEngine {
         return [action, { durationMs: [min, max], weight }]
       }),
     ) as unknown as BehaviorRules
+    if (
+      !Number.isFinite(
+        actions.reduce((sum, action) => sum + this.rules[action].weight, 0),
+      )
+    ) {
+      throw new RangeError('Behavior weight total must be finite')
+    }
     if (actions.filter((action) => this.rules[action].weight > 0).length < 2) {
       throw new RangeError(
         'At least two actions need positive weight to avoid repeats',
