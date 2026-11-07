@@ -203,7 +203,7 @@ void (async () => {
     assert.equal(entry.hole, false)
   }
   for (const entry of results.snapshots.slice(4)) {
-    assert.equal(entry.result.assetId, 'test-neutral')
+    assert.equal(entry.result.assetId, 'test-smile')
     assert.equal(entry.result.fallback, true)
   }
   for (const result of results.actionStates) {

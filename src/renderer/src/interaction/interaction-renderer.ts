@@ -6,9 +6,11 @@ import {
 import type { CharacterVisualState } from '../../../shared/character-state'
 import type { CharacterRenderer, RenderResult } from '../character/renderer'
 import type { GreetingPresenter } from '../dialogue/greeting'
+import type { RelationshipStage } from '../../../relationship/relationship'
 
 export interface InteractionEvent extends InteractionResponse {
   readonly action: CharacterVisualState['action']
+  readonly stage: RelationshipStage
 }
 
 /** Temporary presentation only. It never pauses, wakes or mutates the behavior engine. */
@@ -25,6 +27,7 @@ export class InteractionRenderer implements CharacterRenderer {
   private readonly clock: BehaviorClock
   private readonly random: () => number
   private readonly notify: (event: InteractionEvent) => void
+  private readonly relationshipStage: () => RelationshipStage
 
   constructor(
     base: CharacterRenderer,
@@ -32,12 +35,14 @@ export class InteractionRenderer implements CharacterRenderer {
     clock: BehaviorClock,
     random: () => number = Math.random,
     notify: (event: InteractionEvent) => void = () => {},
+    relationshipStage: () => RelationshipStage = () => 'stranger',
   ) {
     this.base = base
     this.bubble = bubble
     this.clock = clock
     this.random = random
     this.notify = notify
+    this.relationshipStage = relationshipStage
   }
   setState(state: CharacterVisualState): Promise<RenderResult> {
     if (this.disposed)
@@ -64,15 +69,18 @@ export class InteractionRenderer implements CharacterRenderer {
     )
       return null
     const action = this.baseState.action
+    const stage = this.relationshipStage()
+    const responseKey = `${stage}:${action}`
     const response = chooseResponse(
       action,
       this.random,
-      this.lastResponse.get(action),
+      this.lastResponse.get(responseKey),
+      stage,
     )
     if (!this.bubble.show(response.text, 3000, 'interaction')) return null
     this.clearReaction(false)
     this.reaction = response
-    this.lastResponse.set(action, response.id)
+    this.lastResponse.set(responseKey, response.id)
     this.nextAllowedAt =
       this.clock.now() + (action === 'sleeping' ? 15000 : 3000)
     const generation = this.generation
@@ -82,7 +90,7 @@ export class InteractionRenderer implements CharacterRenderer {
       this.clearReaction()
       this.render()
     }, 3000)
-    const event = Object.freeze({ ...response, action })
+    const event = Object.freeze({ ...response, action, stage })
     this.notify(event)
     return event
   }
