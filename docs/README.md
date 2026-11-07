@@ -31,6 +31,8 @@
 
 | [18-time-policy-validation.md](18-time-policy-validation.md) | 時間帯別行動、起動挨拶、時計変更・スリープの検証 |
 
+| [19-interaction-validation.md](19-interaction-validation.md) | クリックとドラッグの分離、行動別反応、連打抑制と検証 |
+
 ## 意思決定済み
 - 成人キャラクター1名のデスクトップ常駐アプリ
 - 自律的な生活が主役（A）、親密度の変化は補助（B）

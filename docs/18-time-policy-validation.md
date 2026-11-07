@@ -1,5 +1,7 @@
 # MVP-05 時間帯・起動挨拶・時刻変更の検証
 
+> MVP-06以降、復帰時の挨拶はアプリが可視かつフォーカス中の場合だけ表示し、クリック反応を優先する。[交流検証記録](19-interaction-validation.md) を参照。
+
 ## 時間帯と行動選択
 
 `src/behavior/time-policy.ts` は端末の現地時刻（Date.getHours）で以下を選ぶ。

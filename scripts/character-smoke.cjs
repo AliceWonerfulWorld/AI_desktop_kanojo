@@ -50,6 +50,7 @@ void (async () => {
     const { timeContextAt } = await import(${JSON.stringify('/@fs/' + normalizePath(join(__dirname, '../src/behavior/time-policy.ts')))})
     const { installTimePreview } = await import('/src/behavior/time-preview.ts')
     const { GreetingPresenter, greetingFor } = await import('/src/dialogue/greeting.ts')
+    const { InteractionRenderer } = await import('/src/interaction/interaction-renderer.ts')
     const host = document.createElement('div')
     host.style.cssText = 'position:fixed;left:0;top:0;width:340px;height:520px'
     document.body.append(host)
@@ -156,6 +157,29 @@ void (async () => {
     removeTime(); greeting.dispose(); timedEngine.dispose();
     const timeCleanedUp = typeof window.timePreview === 'undefined' && clock.tasks.size === 0;
     greetingView.remove();
+    const reactionView = document.createElement('p');
+    host.append(reactionView);
+    const reactionBubble = new GreetingPresenter(reactionView, clock);
+    const reactionTasks = [];
+    const reactionEvents = [];
+    const interactive = new InteractionRenderer({
+      setState(state) { const task = renderer.setState(state); reactionTasks.push(task); return task },
+      hitTest: (x,y) => renderer.hitTest(x,y), dispose: () => {},
+    }, reactionBubble, clock, () => 0, event => reactionEvents.push(event));
+    await interactive.setState({action:'idle',expression:'neutral'});
+    const beforeReaction = host.querySelector('canvas').toDataURL();
+    interactive.react();
+    await Promise.all(reactionTasks.splice(0));
+    const duringReaction = host.querySelector('canvas').toDataURL();
+    const textDuringReaction = reactionView.textContent;
+    for (let i = 0; i < 20; i++) interactive.react();
+    const acceptedReactions = reactionEvents.length;
+    clock.advance(3000);
+    await Promise.all(reactionTasks.splice(0));
+    const afterReaction = host.querySelector('canvas').toDataURL();
+    const hiddenAfterReaction = reactionView.hidden;
+    interactive.dispose(); reactionBubble.dispose(); reactionView.remove();
+
     const disposedTimers = clock.tasks.size;
     const behaviorPreviewAfter = typeof window.behaviorPreview;
     remove()
@@ -166,7 +190,7 @@ void (async () => {
     pendingRenderer.dispose()
     const disposedDuringLoad = await pending
     const afterDispose = await renderer.setState({action:'idle',expression:'smile'})
-    return {periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
+    return {beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
   })()`)
   assert.equal(
     new Set(results.snapshots.slice(0, 4).map((entry) => entry.pixels)).size,
@@ -230,6 +254,11 @@ void (async () => {
   assert.equal(results.greetingExpired, true)
   assert.equal(results.resetLiveTime, true)
   assert.equal(results.timeCleanedUp, true)
+  assert.notEqual(results.beforeReaction, results.duringReaction)
+  assert.equal(results.beforeReaction, results.afterReaction)
+  assert.equal(results.acceptedReactions, 1)
+  assert.equal(results.hiddenAfterReaction, true)
+  assert.ok(results.textDuringReaction.length > 0)
   assert.equal(results.disposedDuringLoad.applied, false)
   assert.equal(results.disposedHit, false)
   assert.equal(results.afterDispose.applied, false)

@@ -23,6 +23,7 @@ const api: DesktopAPI = {
   setPointerInteractive: (interactive) =>
     ipcRenderer.send(channels.pointer, interactive),
   setDragging: (dragging) => ipcRenderer.send(channels.drag, dragging),
+  finishDrag: () => ipcRenderer.invoke(channels.dragEnd),
   openMenu: () => ipcRenderer.send(channels.menu),
 }
 

@@ -183,31 +183,40 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
     drag = {
       cursor: screen.getCursorScreenPoint(),
       origin: window.getBounds(),
-      started: Date.now(),
+      started: performance.now(),
       moved: false,
     }
     updateMouse()
     // Poll only during a deliberate drag; use DIP coordinates from Main, never renderer screenX.
-    dragTimer = setInterval(() => {
-      if (!drag) return
-      if (Date.now() - drag.started > 30000) {
-        stopDrag()
-        return
-      }
-      const cursor = screen.getCursorScreenPoint()
-      const dx = cursor.x - drag.cursor.x
-      const dy = cursor.y - drag.cursor.y
-      if (!drag.moved && Math.hypot(dx, dy) < 6) return
-      drag.moved = true
-      const area = screen.getDisplayNearestPoint(cursor).workArea
-      window.setBounds(
-        fitToWorkArea(
-          { ...drag.origin, x: drag.origin.x + dx, y: drag.origin.y + dy },
-          area,
-        ),
-      )
-    }, 16)
+    dragTimer = setInterval(sampleDrag, 16)
   }
+  function sampleDrag(): void {
+    if (!drag) return
+    if (performance.now() - drag.started > 30000) {
+      stopDrag()
+      return
+    }
+    const cursor = screen.getCursorScreenPoint()
+    const dx = cursor.x - drag.cursor.x
+    const dy = cursor.y - drag.cursor.y
+    if (!drag.moved && Math.hypot(dx, dy) < 6) return
+    drag.moved = true
+    const area = screen.getDisplayNearestPoint(cursor).workArea
+    window.setBounds(
+      fitToWorkArea(
+        { ...drag.origin, x: drag.origin.x + dx, y: drag.origin.y + dy },
+        area,
+      ),
+    )
+  }
+  ipcMain.handle(channels.dragEnd, (event) => {
+    if (!trusted(event)) throw new Error('Untrusted drag-end request')
+    sampleDrag()
+    const result = !drag ? 'cancelled' : drag.moved ? 'drag' : 'click'
+    stopDrag()
+    return result
+  })
+
   const openMenu = (): void => {
     stopDrag()
     Menu.buildFromTemplate(menuItems()).popup({ window })
@@ -252,6 +261,7 @@ export function createDesktopWindow(launchInfo: LaunchInfo): {
     if (dragTimer) clearInterval(dragTimer)
     tray.destroy()
     ipcMain.removeHandler(channels.launch)
+    ipcMain.removeHandler(channels.dragEnd)
     powerMonitor.removeListener('suspend', suspend)
     powerMonitor.removeListener('resume', resume)
     ipcMain.removeListener(channels.pointer, pointerHandler)
