@@ -1,8 +1,13 @@
+import type { OutfitId, OutfitOption, OutfitRequest } from './outfits'
 import type { MemoryState } from './memory-state'
 
 export type DesktopSettings = MemoryState['settings']
-export type SettingsPatch = Partial<Omit<DesktopSettings, 'windowBounds'>>
+export type SettingsPatch = Partial<
+  Omit<DesktopSettings, 'windowBounds' | 'outfitId'>
+>
 export interface PresentationState {
+  readonly outfits: readonly OutfitOption[]
+  readonly outfitRequest: OutfitRequest | null
   readonly revision: number
   readonly eventPaused?: boolean
   readonly saveFailed?: boolean
@@ -10,6 +15,7 @@ export interface PresentationState {
   readonly settings: DesktopSettings
 }
 export interface SettingsAPI {
+  applyOutfit(id: OutfitId): Promise<PresentationState>
   openEvents(): Promise<void>
   openPrivateMode(): Promise<void>
   getState(): Promise<PresentationState>

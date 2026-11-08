@@ -5,7 +5,7 @@ const { join } = require('node:path')
 const timeout = setTimeout(() => {
   console.error('Character smoke timed out')
   app.exit(1)
-}, 30000)
+}, 45000)
 
 void (async () => {
   const { createServer, normalizePath } = await import('vite')
@@ -218,6 +218,57 @@ void (async () => {
     const koharuActions = [];
     for (const action of ['idle','reading','resting','sleeping']) for (const expression of ['neutral','smile','sleepy','surprised','shy','affectionate'])
       koharuActions.push(await koharuRenderer.setState({action,expression}));
+    const koharuCache = koharuRenderer.getCacheStats();
+    const loungeFrames=[];
+    await koharuRenderer.setOutfit('loungewear');
+    for(const action of ['idle','reading','resting','sleeping']) for(const expression of ['neutral','smile','sleepy','surprised','shy','affectionate']) {
+      const result=await koharuRenderer.setState({action,expression});
+      const canvas=koharuHost.querySelector('canvas');
+      loungeFrames.push({result,pixels:action==='idle'?canvas.toDataURL():null,visible:koharuRenderer.hitTest(170,260),margin:koharuRenderer.hitTest(0,0),gap:koharuRenderer.hitTest(170,416)});
+    }
+    const loungeCache=koharuRenderer.getCacheStats();
+    const neutralOnly = new PngCharacterRenderer(koharuHost,koharuAssets.filter(a=>a.outfitId==='loungewear' && a.expression==='neutral'));
+    const neutralOnlyFrames=[];
+    for(const expression of ['neutral','smile','sleepy','surprised','shy','affectionate']) neutralOnlyFrames.push(await neutralOnly.setState({action:'reading',expression,outfitId:'loungewear'}));
+    neutralOnly.dispose();
+    const brokenLounge = new PngCharacterRenderer(koharuHost,koharuAssets.map(a=>a.outfitId==='loungewear' && a.expression==='shy'?{...a,url:'/missing-production-lounge-shy.png'}:a));
+    const loungeRecovered=await brokenLounge.setState({action:'idle',expression:'shy',outfitId:'loungewear'});
+    brokenLounge.dispose();
+    await koharuRenderer.setOutfit('default');
+
+    // Synthetic outfit mappings use test-only art; no substitute is registered in production.
+    const outfitAssets = [...characterAssets,
+      {...characterAssets.find(a=>a.expression==='neutral'),id:'lounge-neutral-test',outfitId:'loungewear'},
+      {...characterAssets.find(a=>a.expression==='smile'),id:'lounge-shy-test',outfitId:'loungewear',expression:'shy',url:'/missing-outfit-shy.png'},
+    ];
+    const outfitHost = document.createElement('div');
+    outfitHost.style.cssText='position:fixed;left:0;top:0;width:340px;height:520px';
+    document.body.append(outfitHost);
+    const outfitRenderer = new PngCharacterRenderer(outfitHost,outfitAssets);
+    await outfitRenderer.setState({action:'reading',expression:'smile'});
+    const beforeOutfit = outfitHost.querySelector('canvas').toDataURL();
+    const prepared = await outfitRenderer.prepareOutfit('loungewear');
+    const prepareUnchanged=beforeOutfit===outfitHost.querySelector('canvas').toDataURL();
+    await outfitRenderer.setOutfit('loungewear');
+    const outfitFrames=[];
+    for(const action of ['idle','reading','resting','sleeping']) for(const expression of ['neutral','smile','sleepy','surprised','shy','affectionate'])
+      outfitFrames.push(await outfitRenderer.setState({action,expression}));
+    const outfitHits = [outfitRenderer.hitTest(170,312),outfitRenderer.hitTest(170,480)];
+    const outfitCache=outfitRenderer.getCacheStats();
+    const outfitRaces=await Promise.all([outfitRenderer.setOutfit('default'),outfitRenderer.setOutfit('loungewear')]);
+    const outfitAfterRace=await outfitRenderer.setState({action:'resting',expression:'smile'});
+    await outfitRenderer.setState({action:'idle',expression:'smile',outfitId:'loungewear'});
+    const explicitSwitchBack=await outfitRenderer.setOutfit('default');
+    const afterSwitchBack=await outfitRenderer.setState({action:'idle',expression:'smile'});
+    const defaultAgain=outfitHost.querySelector('canvas').toDataURL();
+    const failedOutfit = new PngCharacterRenderer(outfitHost,characterAssets);
+    await failedOutfit.setState({action:'idle',expression:'smile'});
+    const failureCanvas=outfitHost.querySelectorAll('canvas')[1];
+    const beforeFailedSwitch=failureCanvas.toDataURL();
+    const failedSwitch=await failedOutfit.setOutfit('loungewear');
+    const failureBox=failureCanvas.getBoundingClientRect();
+    const failurePreserved=beforeFailedSwitch===failureCanvas.toDataURL() && failedOutfit.hitTest(failureBox.left+170,failureBox.top+312);
+    failedOutfit.dispose();outfitRenderer.dispose();outfitHost.remove();
     const brokenSmile = new PngCharacterRenderer(koharuHost, koharuAssets.map(asset =>
       asset.expression === 'smile' ? {...asset,url:'/missing-smile.png'} : asset));
     const koharuRecovered = await brokenSmile.setState({action:'idle',expression:'smile'});
@@ -246,8 +297,63 @@ void (async () => {
     pendingRenderer.dispose()
     const disposedDuringLoad = await pending
     const afterDispose = await renderer.setState({action:'idle',expression:'smile'})
-    return {koharuRecovered,koharuFrames,koharuActions,koharuReaction,relationshipFrames,beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
+    return {loungeFrames,loungeCache,neutralOnlyFrames,loungeRecovered,explicitSwitchBack,koharuCache,prepared,prepareUnchanged,outfitFrames,outfitHits,outfitCache,outfitRaces,outfitAfterRace,afterSwitchBack,defaultAgain,failedSwitch,failurePreserved,koharuRecovered,koharuFrames,koharuActions,koharuReaction,relationshipFrames,beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
   })()`)
+  for (const frame of results.loungeFrames) {
+    const expression = frame.result.state.expression
+    const expected = ['neutral', 'smile', 'shy'].includes(expression)
+      ? expression
+      : 'neutral'
+    assert.equal(frame.result.assetId, 'koharu-loungewear-' + expected)
+    assert.equal(frame.result.state.outfitId, 'loungewear')
+    assert.equal(frame.visible, true)
+    assert.equal(frame.margin, false)
+    assert.equal(frame.gap, false)
+  }
+  assert.equal(
+    new Set(
+      results.loungeFrames
+        .filter((f) => f.result.state.action === 'idle')
+        .map((f) => f.pixels),
+    ).size,
+    3,
+  )
+  assert.ok(
+    results.neutralOnlyFrames.every(
+      (r) => r.assetId === 'koharu-loungewear-neutral',
+    ),
+  )
+  assert.equal(results.loungeRecovered.assetId, 'koharu-loungewear-neutral')
+  assert.deepEqual(results.loungeRecovered.unavailable, [
+    'koharu-loungewear-shy',
+  ])
+  assert.ok(results.loungeCache.entries <= 2)
+  assert.ok(results.loungeCache.alphaBytes <= 2 * 937 * 1678)
+  assert.equal(results.koharuCache.entries, 2)
+  assert.equal(results.koharuCache.alphaBytes, 3072 * 5500 + 1143 * 2047)
+  console.log(
+    'PNG retained alpha cache:',
+    JSON.stringify(results.koharuCache),
+    'bytes; decoded image storage is additional',
+  )
+  assert.equal(results.prepared, true)
+  assert.equal(results.prepareUnchanged, true)
+  assert.ok(
+    results.outfitFrames.every(
+      (result) =>
+        result.assetId === 'lounge-neutral-test' &&
+        result.state.outfitId === 'loungewear',
+    ),
+  )
+  assert.deepEqual(results.outfitHits, [true, false])
+  assert.equal(results.outfitCache.alphaBytes, 340 * 520)
+  assert.equal(results.outfitRaces[0].applied, false)
+  assert.equal(results.outfitRaces[1].applied, true)
+  assert.equal(results.outfitAfterRace.assetId, 'lounge-neutral-test')
+  assert.equal(results.explicitSwitchBack.assetId, 'test-smile')
+  assert.equal(results.afterSwitchBack.assetId, 'test-smile')
+  assert.equal(results.failedSwitch.applied, false)
+  assert.equal(results.failurePreserved, true)
   assert.equal(
     new Set(results.koharuFrames.map((frame) => frame.pixels)).size,
     6,
@@ -359,6 +465,52 @@ void (async () => {
   assert.equal(results.afterDispose.applied, false)
   assert.equal(results.canvasCount, 0)
   assert.equal(results.previewAfter, 'undefined')
+  // Sample a separate renderer before/after six real PNGs, without test art or IPC hooks.
+  const memoryWindow = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+    },
+  })
+  await memoryWindow.loadURL(`${server.resolvedUrls.local[0]}character-test`)
+  const rendererMemory = () =>
+    app
+      .getAppMetrics()
+      .find(
+        (metric) => metric.pid === memoryWindow.webContents.getOSProcessId(),
+      )?.memory
+  const memoryBefore = rendererMemory()
+  const retained = await memoryWindow.webContents.executeJavaScript(`(async()=>{
+    const { PngCharacterRenderer }=await import('/src/character/png-renderer.ts');
+    const { characterAssets }=await import('/src/character/assets.ts');
+    const host=document.createElement('div');host.style.cssText='width:340px;height:520px';document.body.append(host);
+    window.memoryRenderer=new PngCharacterRenderer(host,characterAssets);
+    for(const expression of ['neutral','smile','sleepy','surprised','shy','affectionate']) await window.memoryRenderer.setState({action:'idle',expression});
+    return window.memoryRenderer.getCacheStats();
+  })()`)
+  const memoryAfter = rendererMemory()
+  console.log(
+    'PNG memory sample (OS metrics in KiB):',
+    JSON.stringify({ before: memoryBefore, afterSix: memoryAfter, retained }),
+  )
+  const loungeRetained = await memoryWindow.webContents
+    .executeJavaScript(`(async()=>{
+    await window.memoryRenderer.setOutfit('loungewear');
+    for(const expression of ['neutral','shy','smile']) await window.memoryRenderer.setState({action:'idle',expression});
+    return window.memoryRenderer.getCacheStats();
+  })()`)
+  assert.equal(loungeRetained.entries, 2)
+  assert.equal(loungeRetained.alphaBytes, 2 * 937 * 1678)
+  console.log(
+    'Loungewear memory after switching (OS metrics in KiB):',
+    JSON.stringify({ memory: rendererMemory(), retained: loungeRetained }),
+  )
+  await memoryWindow.webContents.executeJavaScript(
+    'window.memoryRenderer.dispose();delete window.memoryRenderer',
+  )
+  memoryWindow.destroy()
   clearTimeout(timeout)
   await server.close()
   window.destroy()

@@ -76,3 +76,5 @@
 [R18-01 専用モード切替](26-private-mode-validation.md): 設定内だけの入口、自己申告、blur設定、通常復帰、許可の非保存。全年齢ダミー表示で検証し、イベント再生は #30。
 
 [Event-01 データ駆動イベント](27-event-engine-validation.md): 一般一覧・A案再生・選択/CG・中断保存・日常復元、専用モードとの境界と検証。
+
+[Costume-01 衣装レジストリ](28-outfit-registry-validation.md): D7の明示適用・旧v1補完・衣装分離、部屋着3PNGの実登録・切替検証と画像品質/メモリの残課題。

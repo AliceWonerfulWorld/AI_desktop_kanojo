@@ -22,6 +22,10 @@ try {
     const state = JSON.parse(
       readFileSync(join(directory, 'memory.json'), 'utf8'),
     )
+    assert.equal(
+      state.settings.outfitId,
+      phase === 'edit' ? 'loungewear' : 'default',
+    )
     assert.equal(state.settings.scale, 0.75)
     assert.equal(state.settings.alwaysOnTop, false)
     assert.equal(state.settings.spontaneousDialogue, false)

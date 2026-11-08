@@ -1,14 +1,19 @@
-import manifest from '../../../../assets/character/manifest.json'
+import { characterRegistry } from '../../../shared/outfit-registry'
 import neutral from '../../../../assets/character/koharu/png/koharu_normal_4K.png'
 import smile from '../../../../assets/character/koharu/png/standing_smile.png'
 import shy from '../../../../assets/character/koharu/png/koharu_shy_4K.png'
 import sleepy from '../../../../assets/character/koharu/png/koharu_sleeping_4K.png'
 import surprised from '../../../../assets/character/koharu/png/koharu_suprising_4K.png'
 import affectionate from '../../../../assets/character/koharu/png/standing_affectionate_4K.png'
-import { isCharacterVisualState } from '../../../shared/character-state'
+import loungeNeutral from '../../../../assets/character/koharu/png/longwear_normal.png'
+import loungeSmile from '../../../../assets/character/koharu/png/longwear_happy.png'
+import loungeShy from '../../../../assets/character/koharu/png/longwear_shy.png'
 import type { CharacterAsset } from './asset-selection'
 
 const urls: Record<string, string> = {
+  'koharu/png/longwear_normal.png': loungeNeutral,
+  'koharu/png/longwear_happy.png': loungeSmile,
+  'koharu/png/longwear_shy.png': loungeShy,
   'koharu/png/koharu_normal_4K.png': neutral,
   'koharu/png/standing_smile.png': smile,
   'koharu/png/koharu_shy_4K.png': shy,
@@ -17,16 +22,16 @@ const urls: Record<string, string> = {
   'koharu/png/standing_affectionate_4K.png': affectionate,
 }
 
-// Manifest is the source of state mapping and provenance; only explicitly bundled files can load.
-export const characterAssets: readonly CharacterAsset[] = manifest.assets.map(
-  (asset) => {
-    if (!isCharacterVisualState(asset) || !urls[asset.file])
-      throw new Error(`Invalid character manifest: ${asset.id}`)
+// Additional URLs are registered only after the selected PNGs have been received.
+export const characterAssets: readonly CharacterAsset[] =
+  characterRegistry.assets.map((asset) => {
+    if (!urls[asset.file])
+      throw new Error(`Unbundled character asset: ${asset.id}`)
     return {
       id: asset.id,
+      outfitId: asset.outfitId,
       url: urls[asset.file],
       action: asset.action,
       expression: asset.expression,
     }
-  },
-)
+  })

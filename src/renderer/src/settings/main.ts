@@ -1,3 +1,4 @@
+import { isOutfitId } from '../../../shared/outfits'
 import type {
   PresentationState,
   SettingsPatch,
@@ -15,12 +16,54 @@ const fields = {
   paused: '#paused',
   privateHideOnBlur: '#private-hide-on-blur',
 } as const
+const outfitSelect =
+  document.querySelector<HTMLSelectElement>('#outfit-select')!
+const outfitApply = document.querySelector<HTMLButtonElement>('#outfit-apply')!
+const outfitStatus =
+  document.querySelector<HTMLParagraphElement>('#outfit-status')!
+let outfitBusy = false
+let outfitBuilt = false
 let latest: PresentationState | undefined
+function updateOutfitButton(): void {
+  outfitApply.disabled =
+    outfitBusy ||
+    !!latest?.outfitRequest ||
+    !latest ||
+    outfitSelect.value === latest.settings.outfitId ||
+    !latest.outfits.some((o) => o.id === outfitSelect.value && o.available)
+}
+
 let queue: Promise<void> = Promise.resolve()
 let disposed = false
 function render(state: PresentationState): void {
   if (disposed || (latest && state.revision < latest.revision)) return
+  const previousRequest = latest?.outfitRequest
+  const previousOutfit = latest?.settings.outfitId
   latest = state
+  if (!outfitBuilt) {
+    for (const outfit of state.outfits) {
+      const option = document.createElement('option')
+      option.value = outfit.id
+      option.textContent =
+        outfit.label + (outfit.available ? '' : '（素材準備中）')
+      option.disabled = !outfit.available
+      outfitSelect.append(option)
+    }
+    outfitBuilt = true
+  }
+  if (previousOutfit !== state.settings.outfitId)
+    outfitSelect.value = state.settings.outfitId
+  outfitSelect.disabled = outfitBusy || !!state.outfitRequest
+  if (state.outfitRequest) {
+    outfitStatus.dataset.phase = 'loading'
+    outfitStatus.textContent = '衣装の画像を読み込んでいます…'
+  } else if (!outfitBusy && (!previousOutfit || previousRequest)) {
+    outfitStatus.dataset.phase = 'ready'
+    outfitStatus.textContent = state.outfits.some((o) => !o.available)
+      ? '部屋着は素材準備中です。選択しただけでは衣装は変わりません。'
+      : '選択後に「この衣装を適用」を押してください。'
+  }
+  updateOutfitButton()
   if (state.saveFailed)
     status.textContent =
       '保存できませんでした。直近の変更は再起動後に復元できない可能性があります。'
@@ -100,5 +143,41 @@ document.querySelector('#event-open')!.addEventListener('click', () => {
     .then(() => window.settings.openEvents())
     .catch(() => {
       status.textContent = '開けませんでした。もう一度お試しください。'
+    })
+})
+
+outfitSelect.addEventListener('change', () => {
+  outfitStatus.dataset.phase = 'candidate'
+  outfitStatus.textContent =
+    'まだ変更していません。「この衣装を適用」で反映します。'
+  updateOutfitButton()
+})
+outfitApply.addEventListener('click', () => {
+  const id = outfitSelect.value
+  if (outfitApply.disabled || !isOutfitId(id)) return
+  outfitBusy = true
+  outfitSelect.disabled = true
+  updateOutfitButton()
+  outfitStatus.dataset.phase = 'applying'
+  outfitStatus.textContent = '衣装を適用しています…'
+  queue = queue
+    .then(async () => {
+      render(await window.settings.applyOutfit(id))
+      outfitStatus.dataset.phase = 'applied'
+      outfitStatus.textContent = latest?.saveFailed
+        ? '衣装は反映しましたが、保存できませんでした。'
+        : '衣装を反映しました。自動で保存されます。'
+    })
+    .catch(() => {
+      outfitStatus.dataset.phase = 'failed'
+      outfitStatus.textContent =
+        '衣装を読み込めませんでした。以前の衣装を維持しています。再度お試しください。'
+      if (latest) outfitSelect.value = latest.settings.outfitId
+    })
+    .finally(() => {
+      if (disposed) return
+      outfitBusy = false
+      outfitSelect.disabled = false
+      updateOutfitButton()
     })
 })

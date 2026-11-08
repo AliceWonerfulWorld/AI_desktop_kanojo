@@ -3,7 +3,7 @@
   "collection": "koharu-selected-transparent-pngs",
   "source": "User-selected PNGs already committed to koharu/png/",
   "createdOn": "2026-11-07",
-  "aiUsage": "Gemini per user report; model/version and transparency/upscale tools unconfirmed. Codex integration only; no redesign.",
+  "aiUsage": "Default outfit: Gemini per user report. Loungewear: generation service/model and editing tools unconfirmed; tracked separately in koharu/manifest.md. Codex integration only.",
   "license": "Publication, commercial and adult distribution unconfirmed; see koharu/manifest.md. Test fixture MIT does not apply.",
   "assets": [
     {
@@ -11,42 +11,72 @@
       "file": "koharu/png/koharu_normal_4K.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "neutral"
+      "expression": "neutral",
+      "outfitId": "default"
     },
     {
       "id": "koharu-smile",
       "file": "koharu/png/standing_smile.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "smile"
+      "expression": "smile",
+      "outfitId": "default"
     },
     {
       "id": "koharu-shy",
       "file": "koharu/png/koharu_shy_4K.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "shy"
+      "expression": "shy",
+      "outfitId": "default"
     },
     {
       "id": "koharu-sleepy",
       "file": "koharu/png/koharu_sleeping_4K.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "sleepy"
+      "expression": "sleepy",
+      "outfitId": "default"
     },
     {
       "id": "koharu-surprised",
       "file": "koharu/png/koharu_suprising_4K.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "surprised"
+      "expression": "surprised",
+      "outfitId": "default"
     },
     {
       "id": "koharu-affectionate",
       "file": "koharu/png/standing_affectionate_4K.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "affectionate"
+      "expression": "affectionate",
+      "outfitId": "default"
+    },
+    {
+      "id": "koharu-loungewear-neutral",
+      "file": "koharu/png/longwear_normal.png",
+      "status": "selected-rights-unverified",
+      "outfitId": "loungewear",
+      "action": "idle",
+      "expression": "neutral"
+    },
+    {
+      "id": "koharu-loungewear-shy",
+      "file": "koharu/png/longwear_shy.png",
+      "status": "selected-rights-unverified",
+      "outfitId": "loungewear",
+      "action": "idle",
+      "expression": "shy"
+    },
+    {
+      "id": "koharu-loungewear-smile",
+      "file": "koharu/png/longwear_happy.png",
+      "status": "selected-rights-unverified",
+      "outfitId": "loungewear",
+      "action": "idle",
+      "expression": "smile"
     }
   ],
   "productionStatus": {
@@ -55,6 +85,19 @@
     "reading": "idle-expression-fallback-no-dedicated-pose",
     "resting": "idle-expression-fallback-no-dedicated-pose",
     "sleeping": "sleepy-expression-not-a-sleeping-pose",
-    "testFixtures": "test/manifest.json; excluded from normal runtime"
-  }
+    "testFixtures": "test/manifest.json; excluded from normal runtime",
+    "loungewear": "received-pngs-integrated-rights-and-edge-quality-unverified"
+  },
+  "outfits": [
+    {
+      "id": "default",
+      "label": "普段着",
+      "status": "ready"
+    },
+    {
+      "id": "loungewear",
+      "label": "部屋着",
+      "status": "ready"
+    }
+  ]
 }

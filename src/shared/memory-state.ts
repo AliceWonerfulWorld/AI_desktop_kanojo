@@ -1,3 +1,4 @@
+import { isOutfitId, type OutfitId } from './outfits.ts'
 import {
   validateEventRecords,
   type EventRecords,
@@ -20,6 +21,7 @@ export interface MemoryState {
   affectionCooldownMs: number
   interactionCooldownMs: number
   settings: {
+    outfitId: OutfitId
     alwaysOnTop: boolean
     clickThrough: boolean
     scale: number
@@ -44,6 +46,7 @@ export function defaultMemory(): MemoryState {
     affectionCooldownMs: 0,
     interactionCooldownMs: 0,
     settings: {
+      outfitId: 'default',
       alwaysOnTop: true,
       clickThrough: true,
       scale: 1,
@@ -109,6 +112,9 @@ export function validateMemory(value: unknown): MemoryState {
     affectionCooldownMs: s.affectionCooldownMs,
     interactionCooldownMs: s.interactionCooldownMs,
     settings: {
+      outfitId: isOutfitId(s.settings.outfitId)
+        ? s.settings.outfitId
+        : 'default',
       alwaysOnTop: s.settings.alwaysOnTop,
       clickThrough: s.settings.clickThrough,
       scale: s.settings.scale,

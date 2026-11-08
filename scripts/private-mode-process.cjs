@@ -76,6 +76,8 @@ app.on('browser-window-created', (_event, window) => {
       powerMonitor.emit('resume')
       assert.equal(BrowserWindow.getAllWindows().length, 1)
       const openSettings = async () => {
+        // Native focus is a test precondition: do not rely on background app activation.
+        app.focus({ steal: true })
         menu.items.find((item) => item.label === '設定…').click()
         const settings = BrowserWindow.getAllWindows().find(
           (win) => win.getTitle() === '小春の設定',
@@ -87,6 +89,8 @@ app.on('browser-window-created', (_event, window) => {
             ),
           'settings',
         )
+        settings.show()
+        settings.focus()
         await waitFor(
           () => settings.isVisible() && settings.isFocused(),
           'settings focus',
@@ -105,7 +109,7 @@ app.on('browser-window-created', (_event, window) => {
         await ui(`window.settings.update({privateHideOnBlur:${value}})`)
       }
       const open = async () => {
-        if (!settings.isVisible()) await openSettings()
+        await openSettings()
         await ui("document.querySelector('#private-open').click()")
         let candidate
         await waitFor(() => {
@@ -114,6 +118,8 @@ app.on('browser-window-created', (_event, window) => {
           )
           return candidate?.isVisible()
         }, 'private window')
+        candidate.focus()
+        await waitFor(() => candidate.isFocused(), 'private focus')
         await waitFor(
           () =>
             candidate.webContents.executeJavaScript(
@@ -121,8 +127,6 @@ app.on('browser-window-created', (_event, window) => {
             ),
           'confirmation',
         )
-        candidate.focus()
-        await waitFor(() => candidate.isFocused(), 'private focus')
         app.emit('activate', {}, true)
         assert.equal(
           candidate.isDestroyed(),

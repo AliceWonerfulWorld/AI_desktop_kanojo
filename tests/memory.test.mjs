@@ -217,3 +217,27 @@ test('sleeping interactions use fifteen seconds and initial saved action resumes
   assert.equal(engine.getSnapshot().current.action, 'idle')
   engine.dispose()
 })
+
+test('outfit choice round-trips while old or unknown v1 IDs normalize without resetting memory', async () => {
+  await directory(async (path) => {
+    const store = new MemoryStore(path)
+    const state = saved(70)
+    state.interactionCount = 12
+    state.settings.outfitId = 'loungewear'
+    await store.save(state)
+    assert.equal(
+      (await new MemoryStore(path).load()).settings.outfitId,
+      'loungewear',
+    )
+    for (const id of [undefined, 'removed-outfit']) {
+      state.settings.outfitId = id
+      await writeFile(join(path, 'memory.json'), JSON.stringify(state))
+      const reloaded = new MemoryStore(path)
+      const result = await reloaded.load()
+      assert.equal(result.settings.outfitId, 'default')
+      assert.equal(result.affection, 70)
+      assert.equal(result.interactionCount, 12)
+      assert.equal(reloaded.recovery, 'none')
+    }
+  })
+})

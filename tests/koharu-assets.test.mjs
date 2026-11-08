@@ -11,8 +11,9 @@ const manifest = JSON.parse(
   readFileSync(new URL('../assets/character/manifest.json', import.meta.url)),
 )
 
+const defaultAssets = manifest.assets.filter((a) => a.outfitId === 'default')
 test('selected koharu PNGs are distinct RGBA with transparent margins and gaps; fixtures stay separate', () => {
-  assert.deepEqual(manifest.assets.map((asset) => asset.expression).sort(), [
+  assert.deepEqual(defaultAssets.map((asset) => asset.expression).sort(), [
     'affectionate',
     'neutral',
     'shy',
@@ -21,7 +22,7 @@ test('selected koharu PNGs are distinct RGBA with transparent margins and gaps; 
     'surprised',
   ])
   const hashes = new Set()
-  for (const asset of manifest.assets) {
+  for (const asset of defaultAssets) {
     assert.equal(asset.status, 'selected-rights-unverified')
     assert.ok(asset.file.startsWith('koharu/png/'))
     const png = readFileSync(
@@ -57,7 +58,7 @@ test('selected koharu PNGs are distinct RGBA with transparent margins and gaps; 
 })
 
 test('all action/expression fallbacks stay within koharu, including smile and neutral recovery', () => {
-  const assets = manifest.assets.map((asset) => ({ ...asset, url: asset.file }))
+  const assets = defaultAssets.map((asset) => ({ ...asset, url: asset.file }))
   for (const action of ['idle', 'reading', 'resting', 'sleeping']) {
     for (const expression of [
       'neutral',
@@ -74,4 +75,31 @@ test('all action/expression fallbacks stay within koharu, including smile and ne
       assert.ok(candidates.some((asset) => asset.expression === 'neutral'))
     }
   }
+})
+
+test('received loungewear PNGs are distinct RGBA originals with working alpha regions', () => {
+  const assets = manifest.assets.filter((a) => a.outfitId === 'loungewear')
+  assert.ok(assets.length >= 2)
+  const hashes = new Set()
+  for (const asset of assets) {
+    const png = readFileSync(
+      new URL(`../assets/character/${asset.file}`, import.meta.url),
+    )
+    const { width, height, alpha, transparent } = readPngAlpha(png)
+    assert.deepEqual([width, height], [937, 1678])
+    assert.equal(png[25], 6)
+    assert.ok(transparent > width * height * 0.6)
+    hashes.add(createHash('sha256').update(png).digest('hex'))
+    const box = { x: 0, y: 0, width, height }
+    assert.equal(alphaHitTest(alpha, width, height, box, 0, 0, 1), false)
+    assert.equal(
+      alphaHitTest(alpha, width, height, box, width / 2, height / 2, 1),
+      true,
+    )
+    assert.equal(
+      alphaHitTest(alpha, width, height, box, width / 2, height * 0.8, 1),
+      false,
+    )
+  }
+  assert.equal(hashes.size, assets.length)
 })
