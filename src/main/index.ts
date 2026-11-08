@@ -21,6 +21,11 @@ let resetFinished: Promise<void> | undefined
 
 function saveError(error: unknown): void {
   console.error('Memory save failed', error)
+  if (quitPending) return
+  if (desktop) {
+    desktop.reportSaveFailure()
+    return
+  }
   if (!saveErrorShown) {
     saveErrorShown = true
     dialog.showErrorBox(
@@ -64,6 +69,7 @@ function createWindow(): void {
       resetFinished = resetMemory()
       return resetFinished
     },
+    () => store.save(memory.snapshot()),
   )
   const { window } = desktop
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))

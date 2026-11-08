@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; object-src 'none'; base-uri 'none'; frame-src 'none'"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; object-src 'none'; base-uri 'none'; frame-src 'none'"
     />
     <title>お話・イベント</title>
     <link rel="stylesheet" href="/src/private-mode/style.css" />
+    <link rel="stylesheet" href="/src/events/style.css" />
   </head>
   <body>
     <main>
@@ -37,6 +38,7 @@
       </section>
       <section id="private-content" hidden aria-labelledby="content-title">
         <h2 id="content-title">専用モード</h2>
+        <div id="private-events"></div>
         <div class="layout">
           <div class="placeholder" role="img" aria-label="全年齢の仮画像領域">
             画像表示領域<br />全年齢のダミー表示

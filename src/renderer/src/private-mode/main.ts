@@ -1,9 +1,11 @@
+import { mountEventView } from '../events/view'
 import type {
   PrivateModeState,
   PrivateModeCommand,
 } from '../../../shared/private-mode'
 const element = <T extends HTMLElement>(id: string): T =>
   document.querySelector<T>(`#${id}`)!
+let disposeEvents: (() => void) | undefined
 let state: PrivateModeState | undefined
 const status = element('status')
 function render(next: PrivateModeState): void {
@@ -14,6 +16,12 @@ function render(next: PrivateModeState): void {
   document.body.dataset.paused = String(next.paused)
   element('confirmation').hidden = next.phase !== 'confirmation'
   element('private-content').hidden = next.phase !== 'active'
+  if (next.phase === 'active' && !disposeEvents)
+    disposeEvents = mountEventView(element('private-events'), true)
+  if (next.phase !== 'active') {
+    disposeEvents?.()
+    disposeEvents = undefined
+  }
   element('resume').hidden = !next.paused
   element('progress').textContent = next.paused
     ? '進行は一時停止中です。再開には明示操作が必要です。'
@@ -59,7 +67,10 @@ window.addEventListener('keydown', (event) => {
   }
 })
 const remove = window.privateMode.onChange(render)
-window.addEventListener('pagehide', remove)
+window.addEventListener('pagehide', () => {
+  remove()
+  disposeEvents?.()
+})
 void window.privateMode
   .getState()
   .then((next) => {

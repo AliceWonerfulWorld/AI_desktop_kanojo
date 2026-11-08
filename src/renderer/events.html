@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; object-src 'none'; base-uri 'none'; frame-src 'none'"
+    />
+    <title>お話・イベント</title>
+    <link rel="stylesheet" href="/src/events/style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>お話・イベント</h1>
+      <div id="events"></div>
+    </main>
+    <script type="module" src="/src/events/main.ts"></script>
+  </body>
+</html>

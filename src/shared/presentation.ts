@@ -4,10 +4,12 @@ export type DesktopSettings = MemoryState['settings']
 export type SettingsPatch = Partial<Omit<DesktopSettings, 'windowBounds'>>
 export interface PresentationState {
   readonly revision: number
+  readonly saveFailed?: boolean
   readonly visible: boolean
   readonly settings: DesktopSettings
 }
 export interface SettingsAPI {
+  openEvents(): Promise<void>
   openPrivateMode(): Promise<void>
   getState(): Promise<PresentationState>
   update(patch: SettingsPatch): Promise<PresentationState>

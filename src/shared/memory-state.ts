@@ -1,3 +1,7 @@
+import {
+  validateEventRecords,
+  type EventRecords,
+} from '../events/event-schema.ts'
 import { actions, type Action } from './character-state.ts'
 import {
   relationshipStage,
@@ -6,6 +10,7 @@ import {
 
 export interface MemoryState {
   schemaVersion: 1
+  events: EventRecords
   affection: number
   relationshipStage: RelationshipStage
   lastLaunchedAt: string | null
@@ -29,6 +34,7 @@ export interface MemoryState {
 export function defaultMemory(): MemoryState {
   return {
     schemaVersion: 1,
+    events: {},
     affection: 0,
     relationshipStage: 'stranger',
     lastLaunchedAt: null,
@@ -93,6 +99,7 @@ export function validateMemory(value: unknown): MemoryState {
   // Reconstruct known fields so unrecognized data is never passed through IPC or saved.
   return {
     schemaVersion: 1,
+    events: validateEventRecords(s.events),
     affection: s.affection,
     relationshipStage: s.relationshipStage,
     lastLaunchedAt: s.lastLaunchedAt,

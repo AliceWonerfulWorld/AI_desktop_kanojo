@@ -1,3 +1,4 @@
+import type { EventProgress } from '../events/event-schema.ts'
 import type { Action } from '../shared/character-state.ts'
 import { validateMemory, type MemoryState } from '../shared/memory-state.ts'
 import { relationshipStage } from '../relationship/relationship.ts'
@@ -48,6 +49,12 @@ export class MemorySession {
       ...this.snapshot(),
       settings,
     }).settings
+  }
+  eventCheckpoint(id: string, progress: EventProgress): void {
+    this.state = validateMemory({
+      ...this.snapshot(),
+      events: { ...this.state.events, [id]: progress },
+    })
   }
   interact(): MemoryState {
     this.tick()

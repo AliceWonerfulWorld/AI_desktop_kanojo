@@ -80,3 +80,7 @@ input:focus-visible {
 [hidden] {
   display: none !important;
 }
+
+#private-content:has(#private-events[data-phase='playing']) > .layout {
+  display: none;
+}

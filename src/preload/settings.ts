@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { SettingsAPI, PresentationState } from '../shared/presentation'
 
 const api: SettingsAPI = {
+  openEvents: () => ipcRenderer.invoke('settings:event-open'),
   openPrivateMode: () => ipcRenderer.invoke('settings:private-open'),
   // No shared runtime imports: sandboxed preloads cannot require local Rollup chunks.
   getState: () => ipcRenderer.invoke('settings:get'),
