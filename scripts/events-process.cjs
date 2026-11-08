@@ -85,6 +85,10 @@ app.on('browser-window-created', (_event, window) => {
               ),
             'settings load',
           )
+          if (phase === 'interrupt')
+            await settings.webContents.executeJavaScript(
+              "window.settings.applyOutfit('loungewear')",
+            )
           await settings.webContents.executeJavaScript(
             "document.querySelector('#event-open').click()",
           )
@@ -108,7 +112,7 @@ app.on('browser-window-created', (_event, window) => {
         await waitFor(() => candidate.isFocused(), 'event focus')
         return candidate
       }
-      let events = await open(phase === 'resume')
+      let events = await open(phase !== 'failure')
       const evaluate = (expression) =>
         events.webContents.executeJavaScript(expression)
       const view = () => evaluate('window.events.getView()')
@@ -203,6 +207,11 @@ app.on('browser-window-created', (_event, window) => {
             },
           ),
         /Invalid/,
+      )
+      assert.equal(
+        (await view()).outfitId,
+        'loungewear',
+        'event uses the chosen general outfit',
       )
       const before = await view()
       for (const eventId of ['tea-locked', 'private-test', 'missing']) {

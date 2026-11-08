@@ -109,6 +109,14 @@ app.on('browser-window-created', (_event, window) => {
         phase === 'edit' ? 'default' : 'loungewear',
       )
       const targetOutfit = phase === 'edit' ? 'loungewear' : 'default'
+      if (phase === 'restore')
+        assert.equal(
+          await evaluate(
+            "document.querySelector('#status').textContent.includes('koharu-loungewear-')",
+          ),
+          true,
+          'startup really renders the persisted outfit',
+        )
       assert.deepEqual(
         await ui(
           "Array.from(document.querySelector('#outfit-select').options).map(o=>({id:o.value,disabled:o.disabled}))",

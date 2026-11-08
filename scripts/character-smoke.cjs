@@ -495,6 +495,18 @@ void (async () => {
     'PNG memory sample (OS metrics in KiB):',
     JSON.stringify({ before: memoryBefore, afterSix: memoryAfter, retained }),
   )
+  const loungeRetained = await memoryWindow.webContents
+    .executeJavaScript(`(async()=>{
+    await window.memoryRenderer.setOutfit('loungewear');
+    for(const expression of ['neutral','shy','smile']) await window.memoryRenderer.setState({action:'idle',expression});
+    return window.memoryRenderer.getCacheStats();
+  })()`)
+  assert.equal(loungeRetained.entries, 2)
+  assert.equal(loungeRetained.alphaBytes, 2 * 937 * 1678)
+  console.log(
+    'Loungewear memory after switching (OS metrics in KiB):',
+    JSON.stringify({ memory: rendererMemory(), retained: loungeRetained }),
+  )
   await memoryWindow.webContents.executeJavaScript(
     'window.memoryRenderer.dispose();delete window.memoryRenderer',
   )
