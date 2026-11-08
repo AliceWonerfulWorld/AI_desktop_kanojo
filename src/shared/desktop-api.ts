@@ -1,4 +1,6 @@
 export const channels = {
+  outfitResult: 'desktop:outfit-result',
+  outfitApply: 'settings:outfit-apply',
   pointer: 'desktop:pointer',
   drag: 'desktop:drag',
   dragEnd: 'desktop:drag-end',
@@ -30,6 +32,7 @@ export type DragResult = 'click' | 'drag' | 'cancelled'
 export type PowerState = 'suspend' | 'resume'
 
 export interface DesktopAPI {
+  reportOutfitReady(token: number, ready: boolean): void
   getPresentation(): Promise<PresentationState>
   onPresentation(listener: (state: PresentationState) => void): () => void
   getMemory(): Promise<MemoryState>

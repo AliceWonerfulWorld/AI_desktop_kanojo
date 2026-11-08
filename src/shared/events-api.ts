@@ -1,3 +1,4 @@
+import type { OutfitId } from './outfits'
 import type { Audience, StoryNode } from '../events/event-schema'
 export interface EventSummary {
   id: string
@@ -21,6 +22,7 @@ export interface EventFrame {
   end: boolean
 }
 export interface EventView {
+  outfitId?: OutfitId
   revision: number
   phase: 'closed' | 'list' | 'playing' | 'completed'
   audience: Audience

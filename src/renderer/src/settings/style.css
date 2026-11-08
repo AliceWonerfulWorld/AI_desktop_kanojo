@@ -116,3 +116,35 @@ input:focus-visible {
   overflow: hidden;
   clip-path: inset(50%);
 }
+
+.outfit {
+  padding: 14px 0;
+  border-bottom: 1px solid #e5dedb;
+}
+.outfit h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+.outfit label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+select {
+  max-width: 100%;
+  padding: 8px;
+  font: inherit;
+  background: #fff;
+  color: inherit;
+  border: 1px solid #c7bac1;
+  border-radius: 6px;
+  margin: 0 4px 8px 0;
+}
+select:focus-visible {
+  outline: 2px solid #886278;
+  outline-offset: 3px;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}

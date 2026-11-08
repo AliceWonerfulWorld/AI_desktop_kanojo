@@ -1,3 +1,5 @@
+import { characterRegistry } from '../shared/outfit-registry'
+import { availableOutfit } from '../shared/character-manifest'
 import { app, Menu, dialog } from 'electron'
 import { join } from 'node:path'
 import { loadLaunchInfo } from './launch-info'
@@ -100,8 +102,13 @@ if (!app.requestSingleInstanceLock()) {
     .then(async () => {
       launchInfo = await loadLaunchInfo(app.getPath('userData'))
       store = new MemoryStore(app.getPath('userData'))
+      const loaded = await store.load()
+      loaded.settings.outfitId = availableOutfit(
+        loaded.settings.outfitId,
+        characterRegistry.outfits,
+      )
       memory = new MemorySession(
-        await store.load(),
+        loaded,
         () => performance.now(),
         new Date().toISOString(),
       )

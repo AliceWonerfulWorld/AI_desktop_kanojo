@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { channels, type DesktopAPI } from '../shared/desktop-api'
 
 const api: DesktopAPI = {
+  reportOutfitReady: (token, ready) =>
+    ipcRenderer.send(channels.outfitResult, token, ready),
   getPresentation: () => ipcRenderer.invoke(channels.presentation),
   onPresentation: (listener) => {
     const handler = (

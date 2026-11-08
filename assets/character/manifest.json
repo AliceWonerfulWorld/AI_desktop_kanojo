@@ -11,42 +11,48 @@
       "file": "koharu/png/koharu_normal_4K.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "neutral"
+      "expression": "neutral",
+      "outfitId": "default"
     },
     {
       "id": "koharu-smile",
       "file": "koharu/png/standing_smile.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "smile"
+      "expression": "smile",
+      "outfitId": "default"
     },
     {
       "id": "koharu-shy",
       "file": "koharu/png/koharu_shy_4K.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "shy"
+      "expression": "shy",
+      "outfitId": "default"
     },
     {
       "id": "koharu-sleepy",
       "file": "koharu/png/koharu_sleeping_4K.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "sleepy"
+      "expression": "sleepy",
+      "outfitId": "default"
     },
     {
       "id": "koharu-surprised",
       "file": "koharu/png/koharu_suprising_4K.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "surprised"
+      "expression": "surprised",
+      "outfitId": "default"
     },
     {
       "id": "koharu-affectionate",
       "file": "koharu/png/standing_affectionate_4K.png",
       "status": "selected-rights-unverified",
       "action": "idle",
-      "expression": "affectionate"
+      "expression": "affectionate",
+      "outfitId": "default"
     }
   ],
   "productionStatus": {
@@ -56,5 +62,17 @@
     "resting": "idle-expression-fallback-no-dedicated-pose",
     "sleeping": "sleepy-expression-not-a-sleeping-pose",
     "testFixtures": "test/manifest.json; excluded from normal runtime"
-  }
+  },
+  "outfits": [
+    {
+      "id": "default",
+      "label": "普段着",
+      "status": "ready"
+    },
+    {
+      "id": "loungewear",
+      "label": "部屋着",
+      "status": "pending"
+    }
+  ]
 }

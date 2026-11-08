@@ -1,3 +1,5 @@
+import { characterRegistry } from '../shared/outfit-registry'
+import { isOutfitId, type OutfitId } from '../shared/outfits'
 import { EventPlayer, isEventCommand } from '../events/event-player'
 import { eventCatalog } from '../events/catalog'
 import { createEventWindow } from './event-window'
@@ -106,10 +108,18 @@ export function createDesktopWindow(
         })
     },
   )
+  let outfitToken = 0
+  let pendingOutfit:
+    | { id: OutfitId; token: number; finish: (ready: boolean) => void }
+    | undefined
   let revision = 0
   function presentation(): PresentationState {
     return {
       revision,
+      outfits: characterRegistry.outfits,
+      outfitRequest: pendingOutfit
+        ? { id: pendingOutfit.id, token: pendingOutfit.token }
+        : null,
       saveFailed,
       eventPaused:
         generalPreviousShown !== undefined ||
@@ -137,7 +147,10 @@ export function createDesktopWindow(
     const created = createSettingsWindow()
     settingsWindow = created
     created.on('closed', () => {
-      if (settingsWindow === created) settingsWindow = undefined
+      if (settingsWindow === created) {
+        pendingOutfit?.finish(false)
+        settingsWindow = undefined
+      }
     })
   }
   function applySettings(value: unknown): PresentationState {
@@ -329,6 +342,12 @@ export function createDesktopWindow(
     })
   }
 
+  function eventView() {
+    return {
+      ...player.view(saveFailed),
+      outfitId: memory().snapshot().settings.outfitId,
+    }
+  }
   function publishEvents(): void {
     const target =
       eventAudience === 'general'
@@ -337,7 +356,7 @@ export function createDesktopWindow(
           ? privateWindow
           : undefined
     if (target && !target.isDestroyed())
-      target.webContents.send(channels.eventChanged, player.view(saveFailed))
+      target.webContents.send(channels.eventChanged, eventView())
   }
   function reportSaveFailure(): void {
     saveFailed = true
@@ -474,6 +493,7 @@ export function createDesktopWindow(
         click: async () => {
           if (resetPending) return
           resetPending = true
+          pendingOutfit?.finish(false)
           try {
             const answer = await dialog.showMessageBox(window, {
               type: 'warning',
@@ -589,7 +609,7 @@ export function createDesktopWindow(
   })
   ipcMain.handle(channels.eventGet, (event) => {
     if (!eventTarget(event)) throw Error('Untrusted event request')
-    return player.view(saveFailed)
+    return eventView()
   })
   ipcMain.handle(channels.eventCommand, (event, command: unknown) => {
     const target = eventTarget(event)
@@ -605,7 +625,7 @@ export function createDesktopWindow(
       if (eventAudience === 'general')
         leaveEvents(command.kind === 'hide' ? 'hidden' : 'restore')
       else leavePrivate(command.kind === 'hide' ? 'hidden' : 'restore')
-      return player.view(saveFailed)
+      return eventView()
     }
     if (command.revision !== player.view().revision)
       throw Error('Stale event command')
@@ -637,7 +657,7 @@ export function createDesktopWindow(
       if (eventAudience === 'general') leaveEvents('restore')
       else leavePrivate('restore')
     } else publishEvents()
-    return player.view(saveFailed)
+    return eventView()
   })
   ipcMain.handle(channels.privateOpen, (event) => {
     if (
@@ -695,6 +715,49 @@ export function createDesktopWindow(
       throw new Error('Settings unavailable')
     return applySettings(patch)
   })
+  ipcMain.handle(channels.outfitApply, async (event, id: unknown) => {
+    if (
+      !trustedSettings(event) ||
+      quitting ||
+      resetPending ||
+      pendingOutfit ||
+      !isOutfitId(id) ||
+      !characterRegistry.outfits.some((o) => o.id === id && o.available)
+    )
+      throw Error('Outfit unavailable')
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      const ready = await new Promise<boolean>((finish) => {
+        pendingOutfit = { id, token: ++outfitToken, finish }
+        timer = setTimeout(() => finish(false), 8000)
+        publish()
+      })
+      if (!ready || quitting || resetPending || !trustedSettings(event))
+        throw Error('Outfit preparation failed')
+      const settings = memory().snapshot().settings
+      memory().settings({ ...settings, outfitId: id })
+      persist()
+    } finally {
+      clearTimeout(timer)
+      pendingOutfit = undefined
+      publish()
+    }
+    return presentation()
+  })
+  const outfitResult = (
+    event: IpcMainEvent,
+    token: unknown,
+    ready: unknown,
+  ): void => {
+    if (
+      trusted(event) &&
+      pendingOutfit &&
+      token === pendingOutfit.token &&
+      typeof ready === 'boolean'
+    )
+      pendingOutfit.finish(ready)
+  }
+  ipcMain.on(channels.outfitResult, outfitResult)
   ipcMain.handle(channels.settingsVisible, (event, visible: unknown) => {
     if (
       !trustedSettings(event) ||
@@ -847,6 +910,7 @@ export function createDesktopWindow(
   })
   const beforeQuit = (): void => {
     quitting = true
+    pendingOutfit?.finish(false)
     leaveEvents('hidden')
     leavePrivate('hidden')
     stopDrag()
@@ -872,12 +936,15 @@ export function createDesktopWindow(
       channels.settingsGet,
       channels.settingsUpdate,
       channels.settingsVisible,
+      channels.outfitApply,
     ])
       ipcMain.removeHandler(channel)
     ipcMain.removeHandler(channels.launch)
     ipcMain.removeHandler(channels.dragEnd)
     ipcMain.removeHandler(channels.memory)
     ipcMain.removeHandler(channels.interaction)
+    pendingOutfit?.finish(false)
+    ipcMain.removeListener(channels.outfitResult, outfitResult)
     ipcMain.removeListener(channels.action, actionHandler)
     powerMonitor.removeListener('suspend', suspend)
     powerMonitor.removeListener('resume', resume)
@@ -890,6 +957,7 @@ export function createDesktopWindow(
     screen.removeListener('display-metrics-changed', keepOnScreen)
   })
   window.webContents.on('did-start-loading', () => {
+    pendingOutfit?.finish(false)
     interactionEligible = false
     interactive = false
     stopDrag()

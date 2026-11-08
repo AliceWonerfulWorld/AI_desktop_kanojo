@@ -113,7 +113,7 @@ export function mountEventView(
       })
       choices.append(b)
     }
-    const key = `${frame.eventId}:${frame.nodeId}`,
+    const key = `${frame.eventId}:${frame.nodeId}:${next.outfitId ?? 'default'}`,
       image = get<HTMLImageElement>('event-cg'),
       fallback = get('event-image-fallback'),
       character = get('event-character')
@@ -152,7 +152,11 @@ export function mountEventView(
         character.hidden = false
         png ??= new PngCharacterRenderer(character, characterAssets)
         void png
-          .setState({ action: 'idle', expression: frame.expression })
+          .setState({
+            action: 'idle',
+            expression: frame.expression,
+            outfitId: next.outfitId ?? 'default',
+          })
           .then((result) => {
             if (!disposed && frameKey === key) {
               fallback.hidden = !!result.assetId

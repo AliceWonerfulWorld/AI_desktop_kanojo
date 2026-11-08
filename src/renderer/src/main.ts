@@ -23,6 +23,9 @@ let interactive: boolean | undefined
 let lastPointer: { x: number; y: number } | undefined
 let gesture: PointerGesture | undefined
 let interactions: InteractionRenderer | undefined
+let png: PngCharacterRenderer | undefined
+let preparedToken = -1
+let appliedOutfit = 'default'
 let renderer: CharacterRenderer
 let behavior: BehaviorEngine | undefined
 let removeBehaviorPreview: (() => void) | undefined
@@ -64,6 +67,20 @@ function receivePresentation(state: PresentationState): void {
     window.desktop.setPointerInteractive(false)
   }
   syncPresentation()
+  if (png) {
+    const request = state.outfitRequest
+    if (request && request.token !== preparedToken) {
+      preparedToken = request.token
+      void png.prepareOutfit(request.id).then((ready) => {
+        if (!disposed) window.desktop.reportOutfitReady(request.token, ready)
+      })
+    }
+    if (appliedOutfit !== state.settings.outfitId) {
+      appliedOutfit = state.settings.outfitId
+      stopDrag()
+      void png.setOutfit(state.settings.outfitId)
+    }
+  }
 }
 
 function updateHitTest(x: number, y: number): void {
@@ -122,8 +139,12 @@ async function initialize(): Promise<void> {
     document.querySelector<HTMLParagraphElement>('#greeting')!,
     browserBehaviorClock,
   )
+  png = new PngCharacterRenderer(character, characterAssets, rendered)
+  await png.setOutfit(savedMemory.settings.outfitId)
+  appliedOutfit = savedMemory.settings.outfitId
+  if (presentation) receivePresentation(presentation)
   interactions = new InteractionRenderer(
-    new PngCharacterRenderer(character, characterAssets, rendered),
+    png,
     greeting,
     browserBehaviorClock,
     Math.random,
