@@ -16,17 +16,7 @@ const urls: Record<string, string> = {
   'koharu/png/standing_affectionate_4K.png': affectionate,
 }
 
-// Only the delivered production names are eligible. Trials/copies never enter this glob.
-const lounge = import.meta.glob(
-  [
-    '../../../../assets/character/koharu/png/loungewear_neutral.png',
-    '../../../../assets/character/koharu/png/loungewear_shy.png',
-    '../../../../assets/character/koharu/png/loungewear_affectionate.png',
-  ],
-  { eager: true, query: '?url', import: 'default' },
-) as Record<string, string>
-for (const [path, url] of Object.entries(lounge))
-  urls[path.replace('../../../../assets/character/', '')] = url
+// Additional URLs are registered only after the selected PNGs have been received.
 export const characterAssets: readonly CharacterAsset[] =
   characterRegistry.assets.map((asset) => {
     if (!urls[asset.file])

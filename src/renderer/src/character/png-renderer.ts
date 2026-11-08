@@ -42,7 +42,11 @@ export class PngCharacterRenderer implements CharacterRenderer {
 
   private load(asset: CharacterAsset): Promise<Frame> {
     const cached = this.cache.get(asset.id)
-    if (cached) return cached
+    if (cached) {
+      this.cache.delete(asset.id)
+      this.cache.set(asset.id, cached)
+      return cached
+    }
     const token = Symbol()
     this.loadTokens.set(asset.id, token)
     const pending: Promise<Frame> = (async () => {
@@ -68,17 +72,17 @@ export class PngCharacterRenderer implements CharacterRenderer {
         const context = buffer.getContext('2d', { willReadFrequently: true })
         if (!context) throw new Error('Canvas 2D unavailable')
         context.drawImage(image, 0, 0)
-        const rgba = context.getImageData(
-          0,
-          0,
-          buffer.width,
-          buffer.height,
-        ).data
-        // Keep original-pixel hit testing without retaining RGB for every 4K frame.
+        // Extract original-pixel alpha in strips, avoiding a full extra 4K RGBA array.
         const alpha = new Uint8ClampedArray(
           image.naturalWidth * image.naturalHeight,
         )
-        for (let i = 0; i < alpha.length; i++) alpha[i] = rgba[i * 4 + 3]!
+        for (let y = 0; y < buffer.height; y += 128) {
+          const rows = Math.min(128, buffer.height - y)
+          const rgba = context.getImageData(0, y, buffer.width, rows).data
+          const offset = y * buffer.width
+          for (let i = 0; i < buffer.width * rows; i++)
+            alpha[offset + i] = rgba[i * 4 + 3]!
+        }
         buffer.width = 0
         buffer.height = 0
         if (this.disposed || this.loadTokens.get(asset.id) !== token)
@@ -94,12 +98,19 @@ export class PngCharacterRenderer implements CharacterRenderer {
       }
     })()
     this.cache.set(asset.id, pending)
+    while (this.cache.size > 2) this.release(this.cache.keys().next().value!)
     void pending.catch(() => {
       if (this.cache.get(asset.id) === pending) this.cache.delete(asset.id)
     })
     return pending
   }
 
+  private release(id: string): void {
+    this.cache.delete(id)
+    this.loadTokens.delete(id)
+    this.retainedAlphaBytes -= this.alphaSizes.get(id) ?? 0
+    this.alphaSizes.delete(id)
+  }
   /** Decode neutral into the actual renderer cache without changing display/hit regions. */
   async prepareOutfit(outfitId: OutfitId): Promise<boolean> {
     if (!isOutfitId(outfitId) || this.disposed) return false
@@ -139,13 +150,10 @@ export class PngCharacterRenderer implements CharacterRenderer {
           (a) => a.id === id && (a.outfitId ?? 'default') === outfitId,
         )
       ) {
-        this.cache.delete(id)
-        this.loadTokens.delete(id)
-        this.retainedAlphaBytes -= this.alphaSizes.get(id) ?? 0
-        this.alphaSizes.delete(id)
+        this.release(id)
       }
     }
-    return this.setState(this.state)
+    return this.setState({ ...this.state, outfitId })
   }
   getCacheStats(): { entries: number; alphaBytes: number } {
     return { entries: this.cache.size, alphaBytes: this.retainedAlphaBytes }

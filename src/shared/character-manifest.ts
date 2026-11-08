@@ -3,7 +3,12 @@ import {
   type Action,
   type Expression,
 } from './character-state.ts'
-import { isOutfitId, type OutfitId, type OutfitOption } from './outfits.ts'
+import {
+  outfitIds,
+  isOutfitId,
+  type OutfitId,
+  type OutfitOption,
+} from './outfits.ts'
 export interface ManifestAsset {
   id: string
   file: string
@@ -25,7 +30,7 @@ export function validateCharacterManifest(value: unknown): CharacterManifest {
     !Array.isArray(m.assets) ||
     m.assets.length > 128 ||
     !Array.isArray(m.outfits) ||
-    m.outfits.length !== 2
+    m.outfits.length !== outfitIds.length
   )
     throw Error('Invalid character registry')
   const ids = new Set<string>(),
@@ -40,7 +45,7 @@ export function validateCharacterManifest(value: unknown): CharacterManifest {
       typeof o.label !== 'string' ||
       !o.label.length ||
       o.label.length > 40 ||
-      !['ready', 'pending'].includes(String(o.status))
+      (o.status !== 'ready' && o.status !== 'pending')
     )
       throw Error('Invalid outfit metadata')
     ids.add(o.id)

@@ -2,6 +2,17 @@ const assert = require('node:assert/strict')
 const { writeFileSync } = require('node:fs')
 const { once } = require('node:events')
 const { app, Tray, BrowserWindow, screen, powerMonitor } = require('electron')
+const { ipcMain } = require('electron')
+let rejectOutfit = false
+const register = ipcMain.on.bind(ipcMain)
+ipcMain.on = (channel, listener) =>
+  register(
+    channel,
+    channel === 'desktop:outfit-result'
+      ? (event, token, ready) =>
+          listener(event, token, rejectOutfit ? false : ready)
+      : listener,
+  )
 const [directory, phase, preview] = process.argv.slice(2)
 app.setPath('userData', directory)
 let menu
@@ -92,6 +103,70 @@ app.on('browser-window-created', (_event, window) => {
           ),
           true,
         )
+      const beforeOutfit = await ui('window.settings.getState()')
+      assert.equal(beforeOutfit.settings.outfitId, 'default')
+      assert.deepEqual(
+        await ui(
+          "Array.from(document.querySelector('#outfit-select').options).map(o=>({id:o.value,disabled:o.disabled}))",
+        ),
+        [
+          { id: 'default', disabled: false },
+          { id: 'loungewear', disabled: true },
+        ],
+      )
+      await ui(
+        "document.querySelector('#outfit-select').dispatchEvent(new Event('change',{bubbles:true}))",
+      )
+      assert.equal(
+        (await ui('window.settings.getState()')).revision,
+        beforeOutfit.revision,
+        'candidate navigation does not apply',
+      )
+      for (const id of ['loungewear', 'missing', '../file', null])
+        assert.equal(
+          await ui(
+            `window.settings.applyOutfit(${JSON.stringify(id)}).then(()=>false,()=>true)`,
+          ),
+          true,
+        )
+      assert.equal(
+        await ui(
+          "window.settings.update({outfitId:'loungewear'}).then(()=>false,()=>true)",
+        ),
+        true,
+      )
+      rejectOutfit = true
+      assert.equal(
+        await ui(
+          "window.settings.applyOutfit('default').then(()=>false,()=>true)",
+        ),
+        true,
+        'decoder rejection rolls back',
+      )
+      const failed = await ui('window.settings.getState()')
+      assert.equal(failed.outfitRequest, null)
+      assert.deepEqual(failed.settings, beforeOutfit.settings)
+      rejectOutfit = false
+      await ui("window.settings.applyOutfit('default')")
+      const appliedOutfit = await ui('window.settings.getState()')
+      assert.equal(appliedOutfit.outfitRequest, null)
+      assert.equal(appliedOutfit.settings.outfitId, 'default')
+      assert.equal(
+        BrowserWindow.getAllWindows().length,
+        2,
+        'outfit never opens private mode',
+      )
+      await ui(
+        "document.querySelector('#outfit-title').scrollIntoView({block:'start'});new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))",
+      )
+      assert.equal(
+        await ui('document.documentElement.scrollWidth<=innerWidth'),
+        true,
+      )
+      writeFileSync(
+        preview.replace('.png', '-outfit.png'),
+        (await settings.webContents.capturePage()).toPNG(),
+      )
       menu.items.find((item) => item.label === '設定…').click()
       assert.equal(
         BrowserWindow.getAllWindows().length,
