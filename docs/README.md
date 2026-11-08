@@ -68,3 +68,7 @@
 リポジトリルートの [AGENTS.md](../AGENTS.md) を確認し、各Issueを受け入れ条件まで実装してください。
 
 [Assets-02 笑顔PNG追加の検証](24-smile-integration-validation.md): 通常6表情、混在解像度、透過判定、許諾と手動確認の残項目。
+
+## Issue #13 UI設計レビュー（未承認）
+
+[現行UIの棚卸し・スタイル候補](07-ui-ux.md) / [日常とイベント2案](08-screen-layouts.md) / [遷移・操作・可読性・要承認D1〜D10](25-ui-interaction-design.md)。文書のみの提案で、ユーザーの最終デザイン判断後に #29/#30/#37 へ渡す。現行優先度はPNG＋日常生活＋親密度＋イベント、Live2Dは一時保留。

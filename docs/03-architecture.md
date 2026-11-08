@@ -1,5 +1,7 @@
 # 技術設計（初期案）
 
+> 2026-11-08 / Issue #13: 現在はPNG＋日常生活＋親密度＋イベントを優先し、Live2D #15/#16/#23/#25は一時保留。下記の導入順は再開時の技術計画であり、イベント実装の前提ではない。UI新規画面は[設計レビュー待ち](25-ui-interaction-design.md)で、今回コードや保存スキーマは変更しない。
+
 > MVP-09: 専用設定ウィンドウ/Preloadを追加。Mainで設定パッチを検証し、revision付き表示状態を両画面へ通知する。Rendererは非表示/停止/OSスリープを合成して進行を制御する。[仕様・検証](23-settings-validation.md)。
 
 > MVP-08実装: 保存スキーマの正本は `src/shared/memory-state.ts`。Mainの `MemorySession` が稼働時間・交流・設定を所有し、`MemoryStore` が検証・一時ファイル置換・バックアップ復旧を担う。以下の初期状態モデル案と区別する。[保存と検証](22-memory-validation.md) を参照。
