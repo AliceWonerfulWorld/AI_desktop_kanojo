@@ -229,7 +229,7 @@ export function createDesktopWindow(
     if (quitting || resetPending || suspended)
       throw new Error('Mode unavailable')
     if (privateWindow) return
-    privatePreviousShown = shown
+    privatePreviousShown = window.isVisible()
     privateSession.request()
     const created = createPrivateModeWindow()
     privateWindow = created
@@ -248,6 +248,9 @@ export function createDesktopWindow(
       leavePrivate('restore')
     })
     created.on('closed', () => {
+      if (privateWindow === created) leavePrivate('hidden')
+    })
+    created.on('minimize', () => {
       if (privateWindow === created) leavePrivate('hidden')
     })
     created.on('hide', () => {
@@ -378,13 +381,19 @@ export function createDesktopWindow(
   refreshTray()
   tray.on('double-click', show)
   window.on('show', () => {
-    leavePrivate('keep')
+    if (!window.isVisible()) return
+    // Delayed native show notifications must not cancel a newly opened mode.
+    if (privateSession.snapshot().phase === 'active') {
+      hideDesktop()
+      return
+    }
     shown = true
     keepOnScreen()
     refreshTray()
     publish()
   })
   window.on('hide', () => {
+    if (window.isVisible()) return
     shown = false
     refreshTray()
     publish()
@@ -410,7 +419,12 @@ export function createDesktopWindow(
     event.sender === privateWindow.webContents &&
     event.senderFrame === privateWindow.webContents.mainFrame
   ipcMain.handle(channels.privateOpen, (event) => {
-    if (!trustedSettings(event)) throw new Error('Untrusted mode entry')
+    if (
+      !trustedSettings(event) ||
+      !settingsWindow!.isVisible() ||
+      !settingsWindow!.isFocused()
+    )
+      throw new Error('Untrusted mode entry')
     openPrivate()
   })
   ipcMain.handle(channels.privateGet, (event) => {
