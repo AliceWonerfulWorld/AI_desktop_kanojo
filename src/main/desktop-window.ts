@@ -35,6 +35,7 @@ export function createDesktopWindow(
 ): {
   window: BrowserWindow
   show: () => void
+  activate: () => void
 } {
   const saved = memory().snapshot().settings
   const initial =
@@ -652,5 +653,14 @@ export function createDesktopWindow(
     else hide()
   })
   updateMouse()
-  return { window, show }
+  return {
+    window,
+    show,
+    activate: () => {
+      // macOS can deliver activate after a deliberate settings/mode focus change.
+      // Do not interpret that notification as a request to leave an open screen.
+      if (privateWindow || settingsWindow?.isVisible()) return
+      show()
+    },
+  }
 }

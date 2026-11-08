@@ -123,6 +123,12 @@ app.on('browser-window-created', (_event, window) => {
         )
         candidate.focus()
         await waitFor(() => candidate.isFocused(), 'private focus')
+        app.emit('activate', {}, true)
+        assert.equal(
+          candidate.isDestroyed(),
+          false,
+          'delayed activation must not cancel confirmation',
+        )
         return candidate
       }
       const enter = async (candidate) => {
@@ -147,6 +153,12 @@ app.on('browser-window-created', (_event, window) => {
       const openActive = async () => {
         const candidate = await open()
         await enter(candidate)
+        app.emit('activate', {}, true)
+        assert.equal(
+          candidate.isDestroyed(),
+          false,
+          'delayed activation must not cancel confirmation',
+        )
         return candidate
       }
       let privateWindow = await open()
