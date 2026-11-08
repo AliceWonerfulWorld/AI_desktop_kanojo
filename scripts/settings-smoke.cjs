@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict')
-const { mkdtempSync, readFileSync, writeFileSync, rmSync } = require('node:fs')
+const { mkdtempSync, readFileSync, rmSync } = require('node:fs')
 const { tmpdir } = require('node:os')
 const { join } = require('node:path')
 const { spawnSync } = require('node:child_process')
@@ -22,17 +22,15 @@ try {
     const state = JSON.parse(
       readFileSync(join(directory, 'memory.json'), 'utf8'),
     )
-    assert.equal(state.settings.outfitId, 'default')
+    assert.equal(
+      state.settings.outfitId,
+      phase === 'edit' ? 'loungewear' : 'default',
+    )
     assert.equal(state.settings.scale, 0.75)
     assert.equal(state.settings.alwaysOnTop, false)
     assert.equal(state.settings.spontaneousDialogue, false)
     assert.equal(state.settings.showOnStartup, false)
     assert.equal(state.settings.paused, phase === 'edit')
-    if (phase === 'edit') {
-      // A removed/unavailable saved outfit must normalize on real app startup.
-      state.settings.outfitId = 'loungewear'
-      writeFileSync(join(directory, 'memory.json'), JSON.stringify(state))
-    }
   }
   console.log(
     'Settings smoke passed: actual controls, quiet mode, scale, hidden startup and restart',

@@ -41,20 +41,31 @@ const fixture = () => ({
     },
   ],
 })
-test('registry keeps six default expressions and missing loungewear explicitly pending', () => {
+test('registry keeps six default expressions and enables the received loungewear', () => {
   const registry = validateCharacterManifest(manifest)
-  assert.equal(registry.assets.length, 6)
+  assert.equal(
+    registry.assets.filter((a) => a.outfitId === 'default').length,
+    6,
+  )
   assert.ok(
-    registry.assets.every(
-      (a) => a.outfitId === 'default' && !a.file.includes('trial'),
+    registry.assets.some(
+      (a) => a.outfitId === 'loungewear' && a.expression === 'neutral',
     ),
   )
+  assert.ok(registry.assets.every((a) => !a.file.includes('trial')))
   assert.deepEqual(
     registry.outfits.map((o) => o.available),
-    [true, false],
+    [true, true],
   )
-  assert.equal(availableOutfit('loungewear', registry.outfits), 'default')
+  assert.equal(availableOutfit('loungewear', registry.outfits), 'loungewear')
   assert.equal(availableOutfit('deleted', registry.outfits), 'default')
+  assert.equal(
+    availableOutfit(
+      'loungewear',
+      registry.outfits.map((o) => ({ ...o, available: o.id === 'default' })),
+    ),
+    'default',
+  )
   assert.equal(
     availableOutfit('loungewear', validateCharacterManifest(fixture()).outfits),
     'loungewear',

@@ -104,25 +104,29 @@ app.on('browser-window-created', (_event, window) => {
           true,
         )
       const beforeOutfit = await ui('window.settings.getState()')
-      assert.equal(beforeOutfit.settings.outfitId, 'default')
+      assert.equal(
+        beforeOutfit.settings.outfitId,
+        phase === 'edit' ? 'default' : 'loungewear',
+      )
+      const targetOutfit = phase === 'edit' ? 'loungewear' : 'default'
       assert.deepEqual(
         await ui(
           "Array.from(document.querySelector('#outfit-select').options).map(o=>({id:o.value,disabled:o.disabled}))",
         ),
         [
           { id: 'default', disabled: false },
-          { id: 'loungewear', disabled: true },
+          { id: 'loungewear', disabled: false },
         ],
       )
       await ui(
-        "document.querySelector('#outfit-select').dispatchEvent(new Event('change',{bubbles:true}))",
+        `document.querySelector('#outfit-select').value=${JSON.stringify(targetOutfit)};document.querySelector('#outfit-select').dispatchEvent(new Event('change',{bubbles:true}))`,
       )
       assert.equal(
         (await ui('window.settings.getState()')).revision,
         beforeOutfit.revision,
         'candidate navigation does not apply',
       )
-      for (const id of ['loungewear', 'missing', '../file', null])
+      for (const id of ['missing', '../file', null])
         assert.equal(
           await ui(
             `window.settings.applyOutfit(${JSON.stringify(id)}).then(()=>false,()=>true)`,
@@ -138,7 +142,7 @@ app.on('browser-window-created', (_event, window) => {
       rejectOutfit = true
       assert.equal(
         await ui(
-          "window.settings.applyOutfit('default').then(()=>false,()=>true)",
+          `window.settings.applyOutfit(${JSON.stringify(targetOutfit)}).then(()=>false,()=>true)`,
         ),
         true,
         'decoder rejection rolls back',
@@ -147,15 +151,34 @@ app.on('browser-window-created', (_event, window) => {
       assert.equal(failed.outfitRequest, null)
       assert.deepEqual(failed.settings, beforeOutfit.settings)
       rejectOutfit = false
-      await ui("window.settings.applyOutfit('default')")
+      await ui("document.querySelector('#outfit-apply').click()")
+      await waitFor(() =>
+        ui(
+          "document.querySelector('#outfit-status').dataset.phase==='applied'",
+        ),
+      )
+      await waitFor(() =>
+        evaluate(
+          `document.querySelector('#status').textContent.includes('素材: koharu-') && document.querySelector('#status').textContent.includes('koharu-loungewear-')===${targetOutfit === 'loungewear'}`,
+        ),
+      )
       await waitFor(() =>
         ui(
           "document.querySelector('#outfit-status').dataset.phase!=='loading'",
         ),
       )
+      if (targetOutfit === 'loungewear') {
+        await evaluate(
+          'new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))',
+        )
+        writeFileSync(
+          preview.replace('.png', '-loungewear.png'),
+          (await desktop.webContents.capturePage()).toPNG(),
+        )
+      }
       const appliedOutfit = await ui('window.settings.getState()')
       assert.equal(appliedOutfit.outfitRequest, null)
-      assert.equal(appliedOutfit.settings.outfitId, 'default')
+      assert.equal(appliedOutfit.settings.outfitId, targetOutfit)
       assert.equal(
         BrowserWindow.getAllWindows().length,
         2,

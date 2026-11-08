@@ -219,6 +219,23 @@ void (async () => {
     for (const action of ['idle','reading','resting','sleeping']) for (const expression of ['neutral','smile','sleepy','surprised','shy','affectionate'])
       koharuActions.push(await koharuRenderer.setState({action,expression}));
     const koharuCache = koharuRenderer.getCacheStats();
+    const loungeFrames=[];
+    await koharuRenderer.setOutfit('loungewear');
+    for(const action of ['idle','reading','resting','sleeping']) for(const expression of ['neutral','smile','sleepy','surprised','shy','affectionate']) {
+      const result=await koharuRenderer.setState({action,expression});
+      const canvas=koharuHost.querySelector('canvas');
+      loungeFrames.push({result,pixels:action==='idle'?canvas.toDataURL():null,visible:koharuRenderer.hitTest(170,260),margin:koharuRenderer.hitTest(0,0),gap:koharuRenderer.hitTest(170,416)});
+    }
+    const loungeCache=koharuRenderer.getCacheStats();
+    const neutralOnly = new PngCharacterRenderer(koharuHost,koharuAssets.filter(a=>a.outfitId==='loungewear' && a.expression==='neutral'));
+    const neutralOnlyFrames=[];
+    for(const expression of ['neutral','smile','sleepy','surprised','shy','affectionate']) neutralOnlyFrames.push(await neutralOnly.setState({action:'reading',expression,outfitId:'loungewear'}));
+    neutralOnly.dispose();
+    const brokenLounge = new PngCharacterRenderer(koharuHost,koharuAssets.map(a=>a.outfitId==='loungewear' && a.expression==='shy'?{...a,url:'/missing-production-lounge-shy.png'}:a));
+    const loungeRecovered=await brokenLounge.setState({action:'idle',expression:'shy',outfitId:'loungewear'});
+    brokenLounge.dispose();
+    await koharuRenderer.setOutfit('default');
+
     // Synthetic outfit mappings use test-only art; no substitute is registered in production.
     const outfitAssets = [...characterAssets,
       {...characterAssets.find(a=>a.expression==='neutral'),id:'lounge-neutral-test',outfitId:'loungewear'},
@@ -280,8 +297,38 @@ void (async () => {
     pendingRenderer.dispose()
     const disposedDuringLoad = await pending
     const afterDispose = await renderer.setState({action:'idle',expression:'smile'})
-    return {explicitSwitchBack,koharuCache,prepared,prepareUnchanged,outfitFrames,outfitHits,outfitCache,outfitRaces,outfitAfterRace,afterSwitchBack,defaultAgain,failedSwitch,failurePreserved,koharuRecovered,koharuFrames,koharuActions,koharuReaction,relationshipFrames,beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
+    return {loungeFrames,loungeCache,neutralOnlyFrames,loungeRecovered,explicitSwitchBack,koharuCache,prepared,prepareUnchanged,outfitFrames,outfitHits,outfitCache,outfitRaces,outfitAfterRace,afterSwitchBack,defaultAgain,failedSwitch,failurePreserved,koharuRecovered,koharuFrames,koharuActions,koharuReaction,relationshipFrames,beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
   })()`)
+  for (const frame of results.loungeFrames) {
+    const expression = frame.result.state.expression
+    const expected = ['neutral', 'smile', 'shy'].includes(expression)
+      ? expression
+      : 'neutral'
+    assert.equal(frame.result.assetId, 'koharu-loungewear-' + expected)
+    assert.equal(frame.result.state.outfitId, 'loungewear')
+    assert.equal(frame.visible, true)
+    assert.equal(frame.margin, false)
+    assert.equal(frame.gap, false)
+  }
+  assert.equal(
+    new Set(
+      results.loungeFrames
+        .filter((f) => f.result.state.action === 'idle')
+        .map((f) => f.pixels),
+    ).size,
+    3,
+  )
+  assert.ok(
+    results.neutralOnlyFrames.every(
+      (r) => r.assetId === 'koharu-loungewear-neutral',
+    ),
+  )
+  assert.equal(results.loungeRecovered.assetId, 'koharu-loungewear-neutral')
+  assert.deepEqual(results.loungeRecovered.unavailable, [
+    'koharu-loungewear-shy',
+  ])
+  assert.ok(results.loungeCache.entries <= 2)
+  assert.ok(results.loungeCache.alphaBytes <= 2 * 937 * 1678)
   assert.equal(results.koharuCache.entries, 2)
   assert.equal(results.koharuCache.alphaBytes, 3072 * 5500 + 1143 * 2047)
   console.log(

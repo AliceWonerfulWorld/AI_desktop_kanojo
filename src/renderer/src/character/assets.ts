@@ -5,9 +5,15 @@ import shy from '../../../../assets/character/koharu/png/koharu_shy_4K.png'
 import sleepy from '../../../../assets/character/koharu/png/koharu_sleeping_4K.png'
 import surprised from '../../../../assets/character/koharu/png/koharu_suprising_4K.png'
 import affectionate from '../../../../assets/character/koharu/png/standing_affectionate_4K.png'
+import loungeNeutral from '../../../../assets/character/koharu/png/longwear_normal.png'
+import loungeSmile from '../../../../assets/character/koharu/png/longwear_happy.png'
+import loungeShy from '../../../../assets/character/koharu/png/longwear_shy.png'
 import type { CharacterAsset } from './asset-selection'
 
 const urls: Record<string, string> = {
+  'koharu/png/longwear_normal.png': loungeNeutral,
+  'koharu/png/longwear_happy.png': loungeSmile,
+  'koharu/png/longwear_shy.png': loungeShy,
   'koharu/png/koharu_normal_4K.png': neutral,
   'koharu/png/standing_smile.png': smile,
   'koharu/png/koharu_shy_4K.png': shy,
