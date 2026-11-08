@@ -14,6 +14,13 @@
       "expression": "neutral"
     },
     {
+      "id": "koharu-smile",
+      "file": "koharu/png/standing_smile.png",
+      "status": "selected-rights-unverified",
+      "action": "idle",
+      "expression": "smile"
+    },
+    {
       "id": "koharu-shy",
       "file": "koharu/png/koharu_shy_4K.png",
       "status": "selected-rights-unverified",
@@ -44,7 +51,7 @@
   ],
   "productionStatus": {
     "koharuRuntimeImages": "integrated-for-development-not-release-cleared",
-    "smile": "fallback-to-neutral",
+    "smile": "selected-png-integrated-rights-unverified",
     "reading": "idle-expression-fallback-no-dedicated-pose",
     "resting": "idle-expression-fallback-no-dedicated-pose",
     "sleeping": "sleepy-expression-not-a-sleeping-pose",

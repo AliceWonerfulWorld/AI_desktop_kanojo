@@ -218,13 +218,17 @@ void (async () => {
     const koharuActions = [];
     for (const action of ['idle','reading','resting','sleeping']) for (const expression of ['neutral','smile','sleepy','surprised','shy','affectionate'])
       koharuActions.push(await koharuRenderer.setState({action,expression}));
+    const brokenSmile = new PngCharacterRenderer(koharuHost, koharuAssets.map(asset =>
+      asset.expression === 'smile' ? {...asset,url:'/missing-smile.png'} : asset));
+    const koharuRecovered = await brokenSmile.setState({action:'idle',expression:'smile'});
+    brokenSmile.dispose();
     const koharuView = document.createElement('p'); koharuHost.append(koharuView);
     const koharuBubble = new GreetingPresenter(koharuView,clock);
     const koharuTasks = [];
     const koharuInteraction = new InteractionRenderer({
       setState(state) {const task=koharuRenderer.setState(state);koharuTasks.push(task);return task},
       hitTest:(x,y)=>koharuRenderer.hitTest(x,y),dispose:()=>{},
-    },koharuBubble,clock,()=>0.4,()=>{},()=> 'familiar');
+    },koharuBubble,clock,()=>0,()=>{},()=> 'stranger');
     await koharuInteraction.setState({action:'reading',expression:'neutral'});
     koharuInteraction.react(); await Promise.all(koharuTasks.splice(0));
     const koharuReaction={during:koharuApplied.at(-1),text:koharuView.textContent};
@@ -242,17 +246,17 @@ void (async () => {
     pendingRenderer.dispose()
     const disposedDuringLoad = await pending
     const afterDispose = await renderer.setState({action:'idle',expression:'smile'})
-    return {koharuFrames,koharuActions,koharuReaction,relationshipFrames,beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
+    return {koharuRecovered,koharuFrames,koharuActions,koharuReaction,relationshipFrames,beforeReaction,duringReaction,afterReaction,textDuringReaction,acceptedReactions,hiddenAfterReaction,periods,beforeTimeJump,afterTimeJump,rejectedBadTime,validPeriodAfterBadTime,greetingExpired,resetLiveTime,timeCleanedUp,behaviorFrames,notifications,pausedTimers,resumedTimers,disposedTimers,behaviorPreviewAfter,disposedDuringLoad,snapshots,actionStates,simultaneous,current,rejectsInvalid,scaledHits,recovered,allFailed,failedHit,disposedHit,afterDispose,canvasCount:host.querySelectorAll('canvas').length,previewAfter:typeof window.characterPreview}
   })()`)
   assert.equal(
-    new Set(results.koharuFrames.slice(0, 5).map((frame) => frame.pixels)).size,
-    5,
+    new Set(results.koharuFrames.map((frame) => frame.pixels)).size,
+    6,
   )
   for (const frame of results.koharuFrames) {
     assert.equal(frame.result.applied, true)
     assert.equal(
       frame.result.assetId,
-      `koharu-${frame.result.state.expression === 'smile' ? 'neutral' : frame.result.state.expression}`,
+      `koharu-${frame.result.state.expression}`,
     )
     assert.deepEqual(frame.result.unavailable, [])
     assert.equal(frame.visible, true)
@@ -267,7 +271,10 @@ void (async () => {
   }
   for (const result of results.koharuActions)
     assert.ok(result.assetId.startsWith('koharu-'))
-  assert.equal(results.koharuReaction.during.assetId, 'koharu-shy')
+  assert.equal(results.koharuRecovered.assetId, 'koharu-neutral')
+  assert.deepEqual(results.koharuRecovered.unavailable, ['koharu-smile'])
+  assert.equal(results.koharuRecovered.fallback, true)
+  assert.equal(results.koharuReaction.during.assetId, 'koharu-smile')
   assert.ok(results.koharuReaction.text.length > 0)
   assert.equal(results.koharuReaction.after.assetId, 'koharu-neutral')
   assert.equal(results.koharuReaction.after.state.action, 'reading')

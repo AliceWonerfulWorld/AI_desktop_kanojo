@@ -1,5 +1,7 @@
 # Issue #22 小春5表情の統合・検証
 
+> 以下は #22 時点の記録。#36でsmileを専用PNGへ変更。現在の6表情の確認は [笑顔追加検証](24-smile-integration-validation.md) を参照。
+
 ## 変更
 
 mainに配置済みのユーザー選定PNG5枚を、既存 `CharacterRenderer` に登録。原画像は変更しない。通常アプリの `assets.ts` と `manifest.json` は小春のみを参照し、幾何図形を `test-assets.ts` / `test/manifest.json` に分離。テストPNGと生成スクリプトは保持する。

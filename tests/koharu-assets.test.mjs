@@ -17,6 +17,7 @@ test('selected koharu PNGs are distinct RGBA with transparent margins and gaps; 
     'neutral',
     'shy',
     'sleepy',
+    'smile',
     'surprised',
   ])
   const hashes = new Set()
@@ -30,7 +31,9 @@ test('selected koharu PNGs are distinct RGBA with transparent margins and gaps; 
     const { width, height, alpha, transparent, opaque } = readPngAlpha(png)
     assert.deepEqual(
       [width, height],
-      asset.expression === 'affectionate' ? [1143, 2047] : [3072, 5500],
+      ['affectionate', 'smile'].includes(asset.expression)
+        ? [1143, 2047]
+        : [3072, 5500],
     )
     assert.ok(transparent > width * height * 0.5)
     assert.ok(opaque > 0)
@@ -48,12 +51,12 @@ test('selected koharu PNGs are distinct RGBA with transparent margins and gaps; 
   }
   assert.equal(
     hashes.size,
-    5,
+    6,
     'shy and affectionate must be different files too',
   )
 })
 
-test('all action/expression fallbacks stay within koharu, including absent smile and broken exact assets', () => {
+test('all action/expression fallbacks stay within koharu, including smile and neutral recovery', () => {
   const assets = manifest.assets.map((asset) => ({ ...asset, url: asset.file }))
   for (const action of ['idle', 'reading', 'resting', 'sleeping']) {
     for (const expression of [
@@ -67,10 +70,7 @@ test('all action/expression fallbacks stay within koharu, including absent smile
       const candidates = assetCandidates({ action, expression }, assets)
       assert.ok(candidates.length > 0)
       assert.ok(candidates.every((asset) => asset.id.startsWith('koharu-')))
-      assert.equal(
-        candidates[0].expression,
-        expression === 'smile' ? 'neutral' : expression,
-      )
+      assert.equal(candidates[0].expression, expression)
       assert.ok(candidates.some((asset) => asset.expression === 'neutral'))
     }
   }
