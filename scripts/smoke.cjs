@@ -23,6 +23,29 @@ async function waitFor(condition) {
   assert.ok(await condition(), 'Window/renderer condition did not settle')
 }
 
+// getLaunchInfo resolves before initialize() displays its short-lived greeting.
+// Observe the real DOM before releasing that IPC response, rather than sampling
+// text that may already have expired on a busy runner. This hook is test-only.
+const handle = ipcMain.handle.bind(ipcMain)
+ipcMain.handle = (channel, listener) => {
+  if (channel !== 'desktop:launch') return handle(channel, listener)
+  return handle(channel, async (event, ...args) => {
+    await event.sender.executeJavaScript(`(() => {
+      if (window.__startupGreeting) return;
+      const bubble = document.querySelector('#greeting');
+      window.__startupGreeting = { text: '' };
+      const observer = new MutationObserver(() => {
+        if (!bubble.hidden && bubble.textContent) {
+          window.__startupGreeting.text = bubble.textContent;
+          observer.disconnect();
+        }
+      });
+      observer.observe(bubble, {childList:true,subtree:true,characterData:true,attributes:true});
+    })()`)
+    return listener(event, ...args)
+  })
+}
+
 let completed = false
 app.on('will-quit', () => {
   if (!completed) {
@@ -82,6 +105,15 @@ app.on('browser-window-created', (_event, window) => {
           "document.querySelector('#character').dataset.ready === 'true' && document.body.dataset.lifecycleReady === 'true'",
         ),
       )
+      await waitFor(() =>
+        window.webContents.executeJavaScript(
+          '!!window.__startupGreeting?.text',
+        ),
+      )
+      // Regression case: read the startup evidence after the five-second bubble
+      // has expired, without extending or replacing the production timer.
+      if (process.argv.includes('--slow-startup-check'))
+        await new Promise((resolve) => setTimeout(resolve, 5500))
       const preferences = window.webContents.getLastWebPreferences()
       assert.equal(preferences.nodeIntegration, false)
       assert.equal(preferences.contextIsolation, true)
@@ -101,7 +133,9 @@ app.on('browser-window-created', (_event, window) => {
         behaviorPreviewType: typeof window.behaviorPreview,
         timePreviewType: typeof window.timePreview,
         relationshipPreviewType: typeof window.relationshipPreview,
-        greeting: document.querySelector('#greeting').textContent,
+        greeting: window.__startupGreeting.text,
+        greetingHidden: document.querySelector('#greeting').hidden,
+        currentGreeting: document.querySelector('#greeting').textContent,
         greetingPointerEvents: getComputedStyle(document.querySelector('#greeting')).pointerEvents,
         autonomousAction: document.querySelector('#character').dataset.action
       })`)
@@ -127,6 +161,18 @@ app.on('browser-window-created', (_event, window) => {
       assert.equal(state.timePreviewType, 'undefined')
       assert.equal(state.relationshipPreviewType, 'undefined')
       assert.match(state.greeting, /はじめまして/)
+      if (process.argv.includes('--slow-startup-check')) {
+        assert.equal(
+          state.currentGreeting,
+          '',
+          'expired greeting must be cleared',
+        )
+        assert.equal(
+          state.greetingHidden,
+          true,
+          'expired greeting must stay hidden',
+        )
+      }
       assert.equal(state.greetingPointerEvents, 'none')
       assert.deepEqual(
         await window.webContents.executeJavaScript(
