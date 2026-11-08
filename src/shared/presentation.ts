@@ -8,6 +8,7 @@ export interface PresentationState {
   readonly settings: DesktopSettings
 }
 export interface SettingsAPI {
+  openPrivateMode(): Promise<void>
   getState(): Promise<PresentationState>
   update(patch: SettingsPatch): Promise<PresentationState>
   setVisible(visible: boolean): Promise<PresentationState>
@@ -34,6 +35,7 @@ export function validateSettingsPatch(value: unknown): SettingsPatch {
         'spontaneousDialogue',
         'showOnStartup',
         'paused',
+        'privateHideOnBlur',
       ].includes(key)
     ) {
       if (typeof entry !== 'boolean')

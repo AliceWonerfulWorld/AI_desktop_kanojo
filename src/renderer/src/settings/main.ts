@@ -13,6 +13,7 @@ const fields = {
   spontaneousDialogue: '#spontaneous',
   showOnStartup: '#show-on-startup',
   paused: '#paused',
+  privateHideOnBlur: '#private-hide-on-blur',
 } as const
 let latest: PresentationState | undefined
 let queue: Promise<void> = Promise.resolve()
@@ -81,3 +82,11 @@ void window.settings
     status.textContent =
       '設定を読み込めませんでした。トレイから開き直してください。'
   })
+
+document.querySelector('#private-open')!.addEventListener('click', () => {
+  queue = queue
+    .then(() => window.settings.openPrivateMode())
+    .catch(() => {
+      status.textContent = '開けませんでした。もう一度お試しください。'
+    })
+})

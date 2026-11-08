@@ -20,6 +20,7 @@ export interface MemoryState {
     scale: number
     spontaneousDialogue: boolean
     showOnStartup: boolean
+    privateHideOnBlur: boolean
     paused: boolean
     windowBounds: { x: number; y: number; width: number; height: number } | null
   }
@@ -42,6 +43,7 @@ export function defaultMemory(): MemoryState {
       scale: 1,
       spontaneousDialogue: true,
       showOnStartup: true,
+      privateHideOnBlur: true,
       paused: false,
       windowBounds: null,
     },
@@ -73,6 +75,8 @@ export function validateMemory(value: unknown): MemoryState {
       typeof s.settings.showOnStartup !== 'boolean') ||
     (s.settings.paused !== undefined &&
       typeof s.settings.paused !== 'boolean') ||
+    (s.settings.privateHideOnBlur !== undefined &&
+      typeof s.settings.privateHideOnBlur !== 'boolean') ||
     !number(s.settings.scale, 0.5, 2)
   )
     throw new Error('Invalid save fields')
@@ -104,6 +108,7 @@ export function validateMemory(value: unknown): MemoryState {
       spontaneousDialogue: s.settings.spontaneousDialogue,
       showOnStartup: s.settings.showOnStartup ?? true,
       paused: s.settings.paused ?? false,
+      privateHideOnBlur: s.settings.privateHideOnBlur ?? true,
       windowBounds: b
         ? { x: b.x, y: b.y, width: b.width, height: b.height }
         : null,

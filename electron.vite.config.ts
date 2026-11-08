@@ -9,6 +9,7 @@ export default defineConfig({
         input: {
           index: resolve('src/preload/index.ts'),
           settings: resolve('src/preload/settings.ts'),
+          'private-mode': resolve('src/preload/private-mode.ts'),
         },
       },
     },
@@ -19,6 +20,7 @@ export default defineConfig({
         input: {
           index: resolve('src/renderer/index.html'),
           settings: resolve('src/renderer/settings.html'),
+          'private-mode': resolve('src/renderer/private-mode.html'),
         },
       },
     },
