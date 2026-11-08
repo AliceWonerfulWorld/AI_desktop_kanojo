@@ -1,3 +1,7 @@
+import { EventPlayer, isEventCommand } from '../events/event-player'
+import { eventCatalog } from '../events/catalog'
+import { createEventWindow } from './event-window'
+import type { Audience } from '../events/event-schema'
 import {
   BrowserWindow,
   Menu,
@@ -32,9 +36,11 @@ export function createDesktopWindow(
   memory: () => MemorySession,
   persist: () => void,
   resetMemory: () => Promise<void>,
+  saveCheckpoint: () => Promise<void>,
 ): {
   window: BrowserWindow
   show: () => void
+  reportSaveFailure: () => void
   activate: () => void
 } {
   const saved = memory().snapshot().settings
@@ -76,9 +82,41 @@ export function createDesktopWindow(
   let privateWindow: BrowserWindow | undefined
   let privatePreviousShown = false
   let suspended = false
+  let generalWindow: BrowserWindow | undefined
+  let generalPreviousShown: boolean | undefined
+  let eventAudience: Audience | undefined
+  let saveFailed = false
+  let saveSequence = 0
+  const player = new EventPlayer(
+    eventCatalog,
+    () => memory().snapshot(),
+    (id, progress) => {
+      memory().eventCheckpoint(id, progress)
+      const sequence = ++saveSequence
+      void saveCheckpoint()
+        .then(() => {
+          if (sequence === saveSequence) {
+            saveFailed = false
+            publishEvents()
+            publish()
+          }
+        })
+        .catch(() => {
+          if (sequence === saveSequence) reportSaveFailure()
+        })
+    },
+  )
   let revision = 0
   function presentation(): PresentationState {
-    return { revision, visible: shown, settings: memory().snapshot().settings }
+    return {
+      revision,
+      saveFailed,
+      eventPaused:
+        generalPreviousShown !== undefined ||
+        privateSession.snapshot().phase === 'active',
+      visible: shown,
+      settings: memory().snapshot().settings,
+    }
   }
   function publish(): void {
     revision++
@@ -89,6 +127,7 @@ export function createDesktopWindow(
       settingsWindow.webContents.send(channels.settingsChanged, state)
   }
   function openSettings(): void {
+    leaveEvents('restore')
     leavePrivate('restore')
     if (settingsWindow && !settingsWindow.isDestroyed()) {
       settingsWindow.show()
@@ -197,15 +236,21 @@ export function createDesktopWindow(
   }
 
   function show(): void {
+    leaveEvents('keep')
     leavePrivate('keep')
     showDesktop()
   }
   function hide(): void {
+    leaveEvents('keep')
     leavePrivate('keep')
     hideDesktop()
   }
   function leavePrivate(visibility: 'restore' | 'hidden' | 'keep'): void {
     if (privateSession.snapshot().phase === 'closed' && !privateWindow) return
+    if (eventAudience === 'private') {
+      player.close()
+      eventAudience = undefined
+    }
     privateSession.close()
     const created = privateWindow
     privateWindow = undefined
@@ -230,6 +275,7 @@ export function createDesktopWindow(
     if (quitting || resetPending || suspended)
       throw new Error('Mode unavailable')
     if (privateWindow) return
+    leaveEvents('restore')
     privatePreviousShown = window.isVisible()
     privateSession.request()
     const created = createPrivateModeWindow()
@@ -242,7 +288,11 @@ export function createDesktopWindow(
       if (privateWindow !== created) return
       privateSession.blur(memory().snapshot().settings.privateHideOnBlur)
       if (privateSession.snapshot().phase === 'closed') leavePrivate('hidden')
-      else publishPrivate()
+      else {
+        player.pause()
+        publishEvents()
+        publishPrivate()
+      }
     })
     created.on('close', (event) => {
       event.preventDefault()
@@ -279,11 +329,103 @@ export function createDesktopWindow(
     })
   }
 
+  function publishEvents(): void {
+    const target =
+      eventAudience === 'general'
+        ? generalWindow
+        : eventAudience === 'private'
+          ? privateWindow
+          : undefined
+    if (target && !target.isDestroyed())
+      target.webContents.send(channels.eventChanged, player.view(saveFailed))
+  }
+  function reportSaveFailure(): void {
+    saveFailed = true
+    publishEvents()
+    publish()
+  }
+  function leaveEvents(visibility: 'restore' | 'hidden' | 'keep'): void {
+    if (!generalWindow) return
+    const created = generalWindow,
+      previous = generalPreviousShown
+    generalWindow = undefined
+    generalPreviousShown = undefined
+    if (eventAudience === 'general') {
+      player.close()
+      eventAudience = undefined
+    }
+    if (!created.isDestroyed()) created.destroy()
+    if (window.isDestroyed()) return
+    if (visibility === 'hidden') hideDesktop()
+    else if (visibility === 'restore' && previous !== undefined) {
+      if (previous && !quitting) showDesktop()
+      else hideDesktop()
+    }
+  }
+  function openEvents(): void {
+    if (quitting || resetPending || suspended) return
+    if (generalWindow) {
+      generalWindow.show()
+      generalWindow.focus()
+      return
+    }
+    leavePrivate('restore')
+    player.open('general')
+    eventAudience = 'general'
+    const created = createEventWindow()
+    generalWindow = created
+    settingsWindow?.hide()
+    created.once('ready-to-show', () => {
+      if (generalWindow === created && !quitting && !suspended) created.show()
+    })
+    created.on('blur', () => {
+      if (generalWindow === created) {
+        player.pause()
+        publishEvents()
+      }
+    })
+    created.on('close', (event) => {
+      event.preventDefault()
+      leaveEvents('restore')
+    })
+    const conceal = (): void => {
+      if (generalWindow === created) leaveEvents('hidden')
+    }
+    created.on('hide', conceal)
+    created.on('minimize', conceal)
+    created.on('closed', conceal)
+    created.webContents.on('will-navigate', (event) => {
+      event.preventDefault()
+      leaveEvents('hidden')
+    })
+    created.webContents.on('render-process-gone', () => {
+      if (generalWindow === created) leaveEvents('hidden')
+    })
+    let loading = false
+    created.webContents.on('did-start-loading', () => {
+      if (loading && generalWindow === created) leaveEvents('hidden')
+      loading = true
+    })
+    const loaded = process.env.ELECTRON_RENDERER_URL
+      ? created.loadURL(
+          new URL('/events.html', process.env.ELECTRON_RENDERER_URL).href,
+        )
+      : created.loadFile(join(__dirname, '../renderer/events.html'))
+    void loaded.catch(() => {
+      if (generalWindow === created) leaveEvents('restore')
+    })
+  }
+
   function menuItems(): MenuItemConstructorOptions[] {
     return [
       { label: '設定…', click: openSettings },
+      { label: 'お話・イベント…', click: openEvents },
       { label: '表示', enabled: !shown, click: show },
-      { label: '非表示', enabled: shown || !!privateWindow, click: hide },
+      {
+        label: '非表示',
+        enabled: shown || !!privateWindow || !!generalWindow,
+        click: hide,
+      },
       { type: 'separator' },
       {
         label: '常に手前に表示',
@@ -345,6 +487,7 @@ export function createDesktopWindow(
             if (answer.response !== 1) return
             stopDrag()
             interactionEligible = false
+            leaveEvents('keep')
             leavePrivate('keep')
             await resetMemory()
             currentLaunchInfo = { firstLaunch: true }
@@ -384,7 +527,10 @@ export function createDesktopWindow(
   window.on('show', () => {
     if (!window.isVisible()) return
     // Delayed native show notifications must not cancel a newly opened mode.
-    if (privateSession.snapshot().phase === 'active') {
+    if (
+      privateSession.snapshot().phase === 'active' ||
+      generalPreviousShown !== undefined
+    ) {
       hideDesktop()
       return
     }
@@ -419,6 +565,80 @@ export function createDesktopWindow(
     !privateWindow.isDestroyed() &&
     event.sender === privateWindow.webContents &&
     event.senderFrame === privateWindow.webContents.mainFrame
+  const eventTarget = (
+    event: Pick<IpcMainEvent, 'sender' | 'senderFrame'>,
+  ): BrowserWindow | undefined => {
+    const target =
+      eventAudience === 'general'
+        ? generalWindow
+        : eventAudience === 'private' &&
+            privateSession.snapshot().phase === 'active'
+          ? privateWindow
+          : undefined
+    return target &&
+      !target.isDestroyed() &&
+      event.sender === target.webContents &&
+      event.senderFrame === target.webContents.mainFrame
+      ? target
+      : undefined
+  }
+  ipcMain.handle(channels.eventOpen, (event) => {
+    if (!trustedSettings(event) || !settingsWindow!.isFocused())
+      throw Error('Untrusted event entry')
+    openEvents()
+  })
+  ipcMain.handle(channels.eventGet, (event) => {
+    if (!eventTarget(event)) throw Error('Untrusted event request')
+    return player.view(saveFailed)
+  })
+  ipcMain.handle(channels.eventCommand, (event, command: unknown) => {
+    const target = eventTarget(event)
+    if (
+      !target ||
+      quitting ||
+      resetPending ||
+      suspended ||
+      !isEventCommand(command)
+    )
+      throw Error('Invalid event command')
+    if (command.kind === 'return' || command.kind === 'hide') {
+      if (eventAudience === 'general')
+        leaveEvents(command.kind === 'hide' ? 'hidden' : 'restore')
+      else leavePrivate(command.kind === 'hide' ? 'hidden' : 'restore')
+      return player.view(saveFailed)
+    }
+    if (command.revision !== player.view().revision)
+      throw Error('Stale event command')
+    if (!target.isFocused()) throw Error('Event must be focused')
+    const before = player.view()
+    player.apply(command)
+    if (command.kind === 'resume' && eventAudience === 'private') {
+      privateSession.resume(privateSession.snapshot().session)
+      publishPrivate()
+    }
+    const after = player.view()
+    if (eventAudience === 'general') {
+      if (before.phase !== 'playing' && after.phase === 'playing') {
+        generalPreviousShown = window.isVisible()
+        interactionEligible = false
+        hideDesktop()
+      } else if (
+        before.phase === 'playing' &&
+        after.phase === 'list' &&
+        generalPreviousShown !== undefined
+      ) {
+        const previous = generalPreviousShown
+        generalPreviousShown = undefined
+        if (previous) showDesktop()
+        else hideDesktop()
+      }
+    }
+    if (after.phase === 'completed') {
+      if (eventAudience === 'general') leaveEvents('restore')
+      else leavePrivate('restore')
+    } else publishEvents()
+    return player.view(saveFailed)
+  })
   ipcMain.handle(channels.privateOpen, (event) => {
     if (
       !trustedSettings(event) ||
@@ -450,8 +670,16 @@ export function createDesktopWindow(
       if (!privateSession.confirm(command.accepted, command.session))
         throw new Error('Confirmation required')
       interactionEligible = false
+      player.open('private')
+      eventAudience = 'private'
       hideDesktop()
-    } else privateSession.resume(command.session)
+    } else {
+      privateSession.resume(command.session)
+      if (eventAudience === 'private') {
+        player.resume()
+        publishEvents()
+      }
+    }
     publishPrivate()
   })
   ipcMain.handle(channels.presentation, (event) => {
@@ -542,9 +770,21 @@ export function createDesktopWindow(
     if (!trusted(event)) throw new Error('Untrusted launch-info request')
     return currentLaunchInfo
   })
+  function publicMemory(
+    state = memory().snapshot(),
+  ): ReturnType<MemorySession['snapshot']> {
+    state.events = Object.fromEntries(
+      Object.entries(state.events).filter(([id]) =>
+        eventCatalog.some(
+          (event) => event.id === id && event.audience === 'general',
+        ),
+      ),
+    )
+    return state
+  }
   ipcMain.handle(channels.memory, (event) => {
     if (!trusted(event)) throw new Error('Untrusted memory request')
-    return memory().snapshot()
+    return publicMemory()
   })
   ipcMain.handle(channels.interaction, (event) => {
     if (!trusted(event)) throw new Error('Untrusted interaction request')
@@ -558,9 +798,9 @@ export function createDesktopWindow(
       interactionEligible = false
       const state = memory().interact()
       persist()
-      return state
+      return publicMemory(state)
     }
-    return memory().snapshot()
+    return publicMemory()
   })
   const actionHandler = (event: IpcMainEvent, value: unknown): void => {
     if (
@@ -581,6 +821,7 @@ export function createDesktopWindow(
     persist()
     if (!window.webContents.isDestroyed())
       window.webContents.send(channels.power, 'suspend')
+    leaveEvents('restore')
     leavePrivate('restore')
   }
   const resume = (): void => {
@@ -606,6 +847,7 @@ export function createDesktopWindow(
   })
   const beforeQuit = (): void => {
     quitting = true
+    leaveEvents('hidden')
     leavePrivate('hidden')
     stopDrag()
   }
@@ -616,9 +858,13 @@ export function createDesktopWindow(
   window.on('closed', () => {
     if (dragTimer) clearInterval(dragTimer)
     tray.destroy()
+    leaveEvents('hidden')
     leavePrivate('hidden')
     settingsWindow?.destroy()
     for (const channel of [
+      channels.eventGet,
+      channels.eventCommand,
+      channels.eventOpen,
       channels.privateGet,
       channels.privateCommand,
       channels.privateOpen,
@@ -656,10 +902,11 @@ export function createDesktopWindow(
   return {
     window,
     show,
+    reportSaveFailure,
     activate: () => {
       // macOS can deliver activate after a deliberate settings/mode focus change.
       // Do not interpret that notification as a request to leave an open screen.
-      if (privateWindow || settingsWindow?.isVisible()) return
+      if (privateWindow || generalWindow || settingsWindow?.isVisible()) return
       show()
     },
   }

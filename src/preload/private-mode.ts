@@ -15,3 +15,19 @@ const api: PrivateModeAPI = {
   },
 }
 contextBridge.exposeInMainWorld('privateMode', api)
+
+const events: import('../shared/events-api').EventsAPI = {
+  getView: () => ipcRenderer.invoke('events:get'),
+  command: (command) => ipcRenderer.invoke('events:command', command),
+  onChange: (listener) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      view: import('../shared/events-api').EventView,
+    ): void => listener(view)
+    ipcRenderer.on('events:changed', handler)
+    return () => {
+      ipcRenderer.removeListener('events:changed', handler)
+    }
+  },
+}
+contextBridge.exposeInMainWorld('events', events)

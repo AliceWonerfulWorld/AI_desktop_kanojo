@@ -1,0 +1,79 @@
+{
+  "id": "tea-sample",
+  "version": 1,
+  "title": "ひと休みの相談（動作確認サンプル）",
+  "audience": "general",
+  "condition": {
+    "minAffection": 0,
+    "requiredCompleted": []
+  },
+  "entry": "hello",
+  "nodes": [
+    {
+      "id": "hello",
+      "speaker": "小春",
+      "text": "ちょっとひと休みしようかな。今日はお茶と読書、どちらにしよう？",
+      "expression": "smile",
+      "effect": "gentle",
+      "cgAssetId": null,
+      "next": "choose",
+      "choices": [],
+      "end": false
+    },
+    {
+      "id": "choose",
+      "speaker": "小春",
+      "text": "あなたも一緒に、少しのんびりしていく？",
+      "expression": "neutral",
+      "effect": "none",
+      "cgAssetId": null,
+      "next": null,
+      "choices": [
+        {
+          "id": "tea",
+          "text": "お茶をいれて、ゆっくりひと休みする",
+          "next": "tea"
+        },
+        {
+          "id": "book",
+          "text": "本を選んで、静かな時間を過ごす",
+          "next": "book"
+        }
+      ],
+      "end": false
+    },
+    {
+      "id": "tea",
+      "speaker": "小春",
+      "text": "お茶にしよう！ あったかい飲み物があると、ほっとするね。",
+      "expression": "smile",
+      "effect": "gentle",
+      "cgAssetId": "tea-card",
+      "next": "end",
+      "choices": [],
+      "end": false
+    },
+    {
+      "id": "book",
+      "speaker": "小春",
+      "text": "読書にしよう。静かな時間に好きな本を開くのって、落ち着くね。",
+      "expression": "neutral",
+      "effect": "none",
+      "cgAssetId": "missing-card",
+      "next": "end",
+      "choices": [],
+      "end": false
+    },
+    {
+      "id": "end",
+      "speaker": "小春",
+      "text": "付き合ってくれてありがとう。また日常の時間に戻ろうね。",
+      "expression": "smile",
+      "effect": "none",
+      "cgAssetId": null,
+      "next": null,
+      "choices": [],
+      "end": true
+    }
+  ]
+}

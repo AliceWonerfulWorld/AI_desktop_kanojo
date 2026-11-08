@@ -21,6 +21,9 @@ let disposed = false
 function render(state: PresentationState): void {
   if (disposed || (latest && state.revision < latest.revision)) return
   latest = state
+  if (state.saveFailed)
+    status.textContent =
+      '保存できませんでした。直近の変更は再起動後に復元できない可能性があります。'
   for (const [key, selector] of Object.entries(fields))
     document.querySelector<HTMLInputElement>(selector)!.checked =
       state.settings[key as keyof typeof fields]
@@ -35,7 +38,8 @@ function change(patch: SettingsPatch): void {
     .then(async () => {
       status.textContent = '設定を反映しています…'
       render(await window.settings.update(patch))
-      status.textContent = '設定を反映しました。自動で保存されます。'
+      if (!latest?.saveFailed)
+        status.textContent = '設定を反映しました。自動で保存されます。'
     })
     .catch((error: unknown) => {
       console.error('Settings update failed', error)
@@ -86,6 +90,14 @@ void window.settings
 document.querySelector('#private-open')!.addEventListener('click', () => {
   queue = queue
     .then(() => window.settings.openPrivateMode())
+    .catch(() => {
+      status.textContent = '開けませんでした。もう一度お試しください。'
+    })
+})
+
+document.querySelector('#event-open')!.addEventListener('click', () => {
+  queue = queue
+    .then(() => window.settings.openEvents())
     .catch(() => {
       status.textContent = '開けませんでした。もう一度お試しください。'
     })
