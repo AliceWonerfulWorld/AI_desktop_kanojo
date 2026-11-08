@@ -253,9 +253,14 @@ app.on('browser-window-created', (_event, window) => {
         window.webContents.sendInputEvent({ type, x, y, button, clickCount: 1 })
       const countInteractions = () =>
         window.webContents.executeJavaScript('window.__interactions.length')
+      const settleInput = () =>
+        window.webContents.executeJavaScript(`new Promise(resolve =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)))`)
       const press = async (x, y, button = 'left', expectDrag = false) => {
         window.setIgnoreMouseEvents(false)
         mouse('mouseMove', x, y, button)
+        // Flush pointer capture changes and movement before the next press.
+        await settleInput()
         const before = dragMessages
         mouse('mouseDown', x, y, button)
         if (expectDrag) await waitFor(() => dragMessages > before)
@@ -297,6 +302,16 @@ app.on('browser-window-created', (_event, window) => {
       await press(170, 346, 'left', true)
       mouse('mouseUp', 170, 346)
       await waitFor(async () => (await countInteractions()) === 1)
+      // The interaction notification precedes async PNG decoding. Wait for its
+      // actual frame before sending more native input (including capture changes).
+      await waitFor(() =>
+        window.webContents.executeJavaScript(`{
+        const reaction = window.__interactions[0];
+        document.querySelector('#status').textContent.includes(
+          '状態: ' + reaction.action + '/' + reaction.expression)
+      }`),
+      )
+      await settleInput()
       for (let i = 0; i < 3; i++) {
         await press(170, 346, 'left', true)
         mouse('mouseUp', 170, 346)
