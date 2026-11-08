@@ -93,3 +93,9 @@ CI は Windows / macOS で `npm ci`、`npm run check`、`test:styles`、`test:sm
 Electron 42 以降の遅延ダウンロードに対応するため、`postinstall` で公式の `install-electron` を呼びます（[公式変更点](https://www.electronjs.org/blog/electron-42-0)）。`--ignore-scripts` を使う場合は、起動前に `npm exec -- install-electron` を実行してください。
 
 開発ツールの minimatch は DoS 脆弱性 GHSA-g3hv-75wg-m249 の修正版 `^11.0.1` へ overrides で固定しています。依存更新時に指定の必要性を再確認してください。
+
+### 専用モードの切替（Issue #29）
+
+設定画面の「成人向け専用モードの確認へ…」から、18歳以上の自己申告と明示操作で専用画面を開けます。現在は全年齢のダミー画面のみで、イベント/CGは未実装です。Esc・戻るで元の日常状態へ戻り、非表示ならトレイから通常表示へ戻せます。
+
+「フォーカスを失ったら専用画面を隠す」は初期ON。OFFでも進行は一時停止し、明示再開を必要とします。OSスリープ・終了・再起動では専用状態を解除し、自動再表示しません。保存するのはこの表示設定だけで、自己申告や専用への入場許可は保存しません。[仕様・検証・実機未確認事項](docs/26-private-mode-validation.md) を参照してください。`npm run test:private-mode` で一時保存先を使った統合テストを実行できます。
