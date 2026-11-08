@@ -27,6 +27,7 @@ let latest: PresentationState | undefined
 function updateOutfitButton(): void {
   outfitApply.disabled =
     outfitBusy ||
+    !!latest?.outfitRequest ||
     !latest ||
     outfitSelect.value === latest.settings.outfitId ||
     !latest.outfits.some((o) => o.id === outfitSelect.value && o.available)
@@ -36,6 +37,7 @@ let queue: Promise<void> = Promise.resolve()
 let disposed = false
 function render(state: PresentationState): void {
   if (disposed || (latest && state.revision < latest.revision)) return
+  const previousRequest = latest?.outfitRequest
   const previousOutfit = latest?.settings.outfitId
   latest = state
   if (!outfitBuilt) {
@@ -55,7 +57,7 @@ function render(state: PresentationState): void {
   if (state.outfitRequest) {
     outfitStatus.dataset.phase = 'loading'
     outfitStatus.textContent = '衣装の画像を読み込んでいます…'
-  } else if (!outfitBusy && !previousOutfit) {
+  } else if (!outfitBusy && (!previousOutfit || previousRequest)) {
     outfitStatus.dataset.phase = 'ready'
     outfitStatus.textContent = state.outfits.some((o) => !o.available)
       ? '部屋着は素材準備中です。選択しただけでは衣装は変わりません。'

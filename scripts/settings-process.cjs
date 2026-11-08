@@ -148,6 +148,11 @@ app.on('browser-window-created', (_event, window) => {
       assert.deepEqual(failed.settings, beforeOutfit.settings)
       rejectOutfit = false
       await ui("window.settings.applyOutfit('default')")
+      await waitFor(() =>
+        ui(
+          "document.querySelector('#outfit-status').dataset.phase!=='loading'",
+        ),
+      )
       const appliedOutfit = await ui('window.settings.getState()')
       assert.equal(appliedOutfit.outfitRequest, null)
       assert.equal(appliedOutfit.settings.outfitId, 'default')
