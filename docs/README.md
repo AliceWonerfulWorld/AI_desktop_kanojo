@@ -66,3 +66,5 @@
 
 ## Codexでの実装
 リポジトリルートの [AGENTS.md](../AGENTS.md) を確認し、各Issueを受け入れ条件まで実装してください。
+
+[Assets-02 笑顔PNG追加の検証](24-smile-integration-validation.md): 通常6表情、混在解像度、透過判定、許諾と手動確認の残項目。
