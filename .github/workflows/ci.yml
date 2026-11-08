@@ -25,3 +25,4 @@ jobs:
       - run: npm run test:character
       - run: npm run test:memory
       - run: npm run test:settings
+      - run: npm run test:private-mode

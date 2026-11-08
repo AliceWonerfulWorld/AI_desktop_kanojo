@@ -138,7 +138,7 @@ if (!app.requestSingleInstanceLock()) {
           : null,
       )
       createWindow()
-      app.on('activate', () => desktop?.show())
+      app.on('activate', () => desktop?.activate())
     })
     .catch((error: unknown) => {
       console.error('Application startup failed', error)

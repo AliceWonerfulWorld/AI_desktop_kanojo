@@ -14,6 +14,11 @@ import { join } from 'node:path'
 import trayIconPath from '../../resources/tray.png?asset'
 import { channels, type LaunchInfo } from '../shared/desktop-api'
 import { fitToWorkArea, initialBounds, scaledBounds } from './window-bounds'
+import { createPrivateModeWindow } from './private-mode-window'
+import {
+  PrivateModeSession,
+  isPrivateModeCommand,
+} from '../shared/private-mode'
 import { createSettingsWindow } from './settings-window'
 import {
   validateSettingsPatch,
@@ -30,6 +35,7 @@ export function createDesktopWindow(
 ): {
   window: BrowserWindow
   show: () => void
+  activate: () => void
 } {
   const saved = memory().snapshot().settings
   const initial =
@@ -66,6 +72,10 @@ export function createDesktopWindow(
   let interactionEligible = false
   let resetPending = false
   let settingsWindow: BrowserWindow | undefined
+  const privateSession = new PrivateModeSession()
+  let privateWindow: BrowserWindow | undefined
+  let privatePreviousShown = false
+  let suspended = false
   let revision = 0
   function presentation(): PresentationState {
     return { revision, visible: shown, settings: memory().snapshot().settings }
@@ -79,6 +89,7 @@ export function createDesktopWindow(
       settingsWindow.webContents.send(channels.settingsChanged, state)
   }
   function openSettings(): void {
+    leavePrivate('restore')
     if (settingsWindow && !settingsWindow.isDestroyed()) {
       settingsWindow.show()
       settingsWindow.focus()
@@ -166,7 +177,7 @@ export function createDesktopWindow(
     }
   }
 
-  function show(): void {
+  function showDesktop(): void {
     stopDrag()
     interactive = false
     keepOnScreen()
@@ -177,7 +188,7 @@ export function createDesktopWindow(
     publish()
   }
 
-  function hide(): void {
+  function hideDesktop(): void {
     stopDrag()
     shown = false
     window.hide()
@@ -185,11 +196,94 @@ export function createDesktopWindow(
     publish()
   }
 
+  function show(): void {
+    leavePrivate('keep')
+    showDesktop()
+  }
+  function hide(): void {
+    leavePrivate('keep')
+    hideDesktop()
+  }
+  function leavePrivate(visibility: 'restore' | 'hidden' | 'keep'): void {
+    if (privateSession.snapshot().phase === 'closed' && !privateWindow) return
+    privateSession.close()
+    const created = privateWindow
+    privateWindow = undefined
+    // Destroy before restoring other windows; no private DOM can survive re-entry.
+    if (created && !created.isDestroyed()) created.destroy()
+    interactionEligible = false
+    if (window.isDestroyed()) return
+    if (visibility === 'hidden') hideDesktop()
+    else if (visibility === 'restore') {
+      if (privatePreviousShown && !quitting) showDesktop()
+      else hideDesktop()
+    }
+  }
+  function publishPrivate(): void {
+    if (privateWindow && !privateWindow.isDestroyed())
+      privateWindow.webContents.send(
+        channels.privateChanged,
+        privateSession.snapshot(),
+      )
+  }
+  function openPrivate(): void {
+    if (quitting || resetPending || suspended)
+      throw new Error('Mode unavailable')
+    if (privateWindow) return
+    privatePreviousShown = window.isVisible()
+    privateSession.request()
+    const created = createPrivateModeWindow()
+    privateWindow = created
+    settingsWindow?.hide()
+    created.once('ready-to-show', () => {
+      if (privateWindow === created && !suspended && !quitting) created.show()
+    })
+    created.on('blur', () => {
+      if (privateWindow !== created) return
+      privateSession.blur(memory().snapshot().settings.privateHideOnBlur)
+      if (privateSession.snapshot().phase === 'closed') leavePrivate('hidden')
+      else publishPrivate()
+    })
+    created.on('close', (event) => {
+      event.preventDefault()
+      leavePrivate('restore')
+    })
+    created.on('closed', () => {
+      if (privateWindow === created) leavePrivate('hidden')
+    })
+    created.on('minimize', () => {
+      if (privateWindow === created) leavePrivate('hidden')
+    })
+    created.on('hide', () => {
+      if (privateWindow === created) leavePrivate('hidden')
+    })
+    created.webContents.on('will-navigate', (event) => {
+      event.preventDefault()
+      leavePrivate('hidden')
+    })
+    created.webContents.on('render-process-gone', () => {
+      if (privateWindow === created) leavePrivate('hidden')
+    })
+    let loadedOnce = false
+    created.webContents.on('did-start-loading', () => {
+      if (loadedOnce && privateWindow === created) leavePrivate('hidden')
+      loadedOnce = true
+    })
+    const loaded = process.env.ELECTRON_RENDERER_URL
+      ? created.loadURL(
+          new URL('/private-mode.html', process.env.ELECTRON_RENDERER_URL).href,
+        )
+      : created.loadFile(join(__dirname, '../renderer/private-mode.html'))
+    void loaded.catch(() => {
+      if (privateWindow === created) leavePrivate('restore')
+    })
+  }
+
   function menuItems(): MenuItemConstructorOptions[] {
     return [
       { label: '設定…', click: openSettings },
       { label: '表示', enabled: !shown, click: show },
-      { label: '非表示', enabled: shown, click: hide },
+      { label: '非表示', enabled: shown || !!privateWindow, click: hide },
       { type: 'separator' },
       {
         label: '常に手前に表示',
@@ -251,6 +345,7 @@ export function createDesktopWindow(
             if (answer.response !== 1) return
             stopDrag()
             interactionEligible = false
+            leavePrivate('keep')
             await resetMemory()
             currentLaunchInfo = { firstLaunch: true }
             clickThrough = supportsForwarding
@@ -287,12 +382,19 @@ export function createDesktopWindow(
   refreshTray()
   tray.on('double-click', show)
   window.on('show', () => {
+    if (!window.isVisible()) return
+    // Delayed native show notifications must not cancel a newly opened mode.
+    if (privateSession.snapshot().phase === 'active') {
+      hideDesktop()
+      return
+    }
     shown = true
     keepOnScreen()
     refreshTray()
     publish()
   })
   window.on('hide', () => {
+    if (window.isVisible()) return
     shown = false
     refreshTray()
     publish()
@@ -310,6 +412,48 @@ export function createDesktopWindow(
     !settingsWindow.isDestroyed() &&
     event.sender === settingsWindow.webContents &&
     event.senderFrame === settingsWindow.webContents.mainFrame
+  const trustedPrivate = (
+    event: Pick<IpcMainEvent, 'sender' | 'senderFrame'>,
+  ): boolean =>
+    !!privateWindow &&
+    !privateWindow.isDestroyed() &&
+    event.sender === privateWindow.webContents &&
+    event.senderFrame === privateWindow.webContents.mainFrame
+  ipcMain.handle(channels.privateOpen, (event) => {
+    if (
+      !trustedSettings(event) ||
+      !settingsWindow!.isVisible() ||
+      !settingsWindow!.isFocused()
+    )
+      throw new Error('Untrusted mode entry')
+    openPrivate()
+  })
+  ipcMain.handle(channels.privateGet, (event) => {
+    if (!trustedPrivate(event)) throw new Error('Untrusted mode request')
+    return privateSession.snapshot()
+  })
+  ipcMain.handle(channels.privateCommand, (event, command: unknown) => {
+    if (
+      !trustedPrivate(event) ||
+      quitting ||
+      suspended ||
+      !isPrivateModeCommand(command) ||
+      command.session !== privateSession.snapshot().session
+    )
+      throw new Error('Invalid mode command')
+    if (command.kind === 'return' || command.kind === 'hide') {
+      leavePrivate(command.kind === 'hide' ? 'hidden' : 'restore')
+      return
+    }
+    if (!privateWindow!.isFocused()) throw new Error('Mode must be focused')
+    if (command.kind === 'confirm') {
+      if (!privateSession.confirm(command.accepted, command.session))
+        throw new Error('Confirmation required')
+      interactionEligible = false
+      hideDesktop()
+    } else privateSession.resume(command.session)
+    publishPrivate()
+  })
   ipcMain.handle(channels.presentation, (event) => {
     if (!trusted(event)) throw new Error('Untrusted presentation request')
     return presentation()
@@ -431,13 +575,16 @@ export function createDesktopWindow(
   }
   ipcMain.on(channels.action, actionHandler)
   const suspend = (): void => {
+    suspended = true
     interactionEligible = false
     memory().power(true)
     persist()
     if (!window.webContents.isDestroyed())
       window.webContents.send(channels.power, 'suspend')
+    leavePrivate('restore')
   }
   const resume = (): void => {
+    suspended = false
     memory().power(false)
     if (!window.webContents.isDestroyed())
       window.webContents.send(channels.power, 'resume')
@@ -459,6 +606,7 @@ export function createDesktopWindow(
   })
   const beforeQuit = (): void => {
     quitting = true
+    leavePrivate('hidden')
     stopDrag()
   }
   app.on('before-quit', beforeQuit)
@@ -468,8 +616,12 @@ export function createDesktopWindow(
   window.on('closed', () => {
     if (dragTimer) clearInterval(dragTimer)
     tray.destroy()
+    leavePrivate('hidden')
     settingsWindow?.destroy()
     for (const channel of [
+      channels.privateGet,
+      channels.privateCommand,
+      channels.privateOpen,
       channels.presentation,
       channels.settingsGet,
       channels.settingsUpdate,
@@ -501,5 +653,14 @@ export function createDesktopWindow(
     else hide()
   })
   updateMouse()
-  return { window, show }
+  return {
+    window,
+    show,
+    activate: () => {
+      // macOS can deliver activate after a deliberate settings/mode focus change.
+      // Do not interpret that notification as a request to leave an open screen.
+      if (privateWindow || settingsWindow?.isVisible()) return
+      show()
+    },
+  }
 }

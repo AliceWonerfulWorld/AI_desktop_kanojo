@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; object-src 'none'; base-uri 'none'; frame-src 'none'"
+    />
+    <title>お話・イベント</title>
+    <link rel="stylesheet" href="/src/private-mode/style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>お話・イベント</h1>
+        <nav aria-label="画面操作">
+          <button id="return" type="button">日常へ戻る</button
+          ><button id="hide" type="button">非表示</button>
+        </nav>
+      </header>
+      <section id="confirmation" hidden aria-labelledby="confirmation-title">
+        <h2 id="confirmation-title">成人向け専用モードを開く前の確認</h2>
+        <p>
+          18歳以上の方のみ利用できます。年齢確認は自己申告であり、本人確認を保証するものではありません。
+        </p>
+        <label
+          ><input
+            id="adult"
+            type="checkbox"
+          />私は18歳以上です（自己申告）</label
+        >
+        <div class="actions">
+          <button id="cancel" type="button">キャンセル</button
+          ><button id="enter" type="button" disabled>専用モードを開く</button>
+        </div>
+      </section>
+      <section id="private-content" hidden aria-labelledby="content-title">
+        <h2 id="content-title">専用モード</h2>
+        <div class="layout">
+          <div class="placeholder" role="img" aria-label="全年齢の仮画像領域">
+            画像表示領域<br />全年齢のダミー表示
+          </div>
+          <div>
+            <p>専用モードへの切替を確認する画面です。</p>
+            <p>
+              イベントはまだありません。シナリオ・CG・再生機能は今後追加します。
+            </p>
+            <p id="progress" role="status"></p>
+            <button id="resume" type="button" hidden>明示的に再開する</button>
+          </div>
+        </div>
+      </section>
+      <p id="status" role="status" aria-live="polite">読み込んでいます…</p>
+    </main>
+    <script type="module" src="/src/private-mode/main.ts"></script>
+  </body>
+</html>
