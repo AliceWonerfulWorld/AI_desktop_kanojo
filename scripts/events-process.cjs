@@ -129,6 +129,19 @@ app.on('browser-window-created', (_event, window) => {
       const click = async (id) => {
         await evaluate(`document.querySelector('#${id}').click()`)
       }
+      const finish = async (label) => {
+        // Completion destroys the sender before executeJavaScript necessarily replies.
+        // Only this expected disposal is tolerated; native destruction is asserted below.
+        await click('event-next').catch((error) => {
+          if (
+            !/Render frame was disposed|Object has been destroyed/.test(
+              error.message,
+            )
+          )
+            throw error
+        })
+        await waitFor(() => events.isDestroyed(), label)
+      }
       const capture = async (path) => {
         await waitFor(
           () =>
@@ -231,8 +244,7 @@ app.on('browser-window-created', (_event, window) => {
         )
         await click('event-next')
         await node('end')
-        await click('event-next')
-        await waitFor(() => events.isDestroyed(), 'finish returns')
+        await finish('finish returns')
         await waitFor(() => desktop.isVisible(), 'day restored')
         await waitFor(() => daily("__states.at(-1)==='running'"), 'day resumed')
         events = await open()
@@ -273,8 +285,7 @@ app.on('browser-window-created', (_event, window) => {
         await capture(preview.replace('.png', '-small.png'))
         await click('event-next')
         await node('end')
-        await click('event-next')
-        await waitFor(() => events.isDestroyed(), 'second completion')
+        await finish('second completion')
         menu.items.find((item) => item.label === '設定…').click()
         const settings = BrowserWindow.getAllWindows().find(
           (w) => w.getTitle() === '小春の設定',
@@ -297,11 +308,7 @@ app.on('browser-window-created', (_event, window) => {
         await node('tea')
         await click('event-next')
         await node('end')
-        await click('event-next')
-        await waitFor(
-          () => events.isDestroyed(),
-          'completion preserves prior hidden pause',
-        )
+        await finish('completion preserves prior hidden pause')
         assert.equal(desktop.isVisible(), false)
         const restored = await daily('window.desktop.getPresentation()')
         assert.equal(restored.eventPaused, false)
