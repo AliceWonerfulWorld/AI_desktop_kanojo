@@ -21,6 +21,7 @@ jobs:
       - run: npm run check
       - run: npm run test:styles
       - run: npm run test:smoke
+      - run: npm run test:smoke -- --slow-startup-check
       - run: npm run test:character
       - run: npm run test:memory
       - run: npm run test:settings
