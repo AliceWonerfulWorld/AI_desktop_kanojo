@@ -200,6 +200,13 @@ app.on('browser-window-created', (_event, window) => {
         preview.replace('.png', '-confirmation.png'),
         (await privateWindow.webContents.capturePage()).toPNG(),
       )
+      assert.equal(
+        await privateWindow.webContents.executeJavaScript(
+          'window.events.getView().then(()=>false,()=>true)',
+        ),
+        true,
+        'no private event access before consent',
+      )
       const first = await privateWindow.webContents.executeJavaScript(
         'window.privateMode.getState()',
       )
@@ -249,6 +256,15 @@ app.on('browser-window-created', (_event, window) => {
         'stale confirmation rejected',
       )
       await enter(privateWindow)
+      const eventList = await privateWindow.webContents.executeJavaScript(
+        'window.events.getView()',
+      )
+      assert.equal(eventList.audience, 'private')
+      assert.deepEqual(
+        eventList.events,
+        [],
+        'general catalog is not mixed into the private list',
+      )
       await waitFor(
         () => evaluate("window.__behavior.at(-1)?.status==='paused'"),
         'daily paused',

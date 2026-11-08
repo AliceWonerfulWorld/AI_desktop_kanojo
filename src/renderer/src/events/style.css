@@ -131,3 +131,8 @@ button:focus-visible,
 [hidden] {
   display: none !important;
 }
+
+h1 {
+  font-size: 23px;
+  margin: 0 0 12px;
+}

@@ -227,3 +227,26 @@ export function canResume(
   }
   return progress.page < pagesFor(map.get(progress.node)!.text).length
 }
+
+/** Validate the complete bundle before exposing its titles or accepting starts. */
+export function validateCatalog(value: unknown): StoryEvent[] {
+  if (!Array.isArray(value) || value.length > 32)
+    throw Error('Invalid event catalog')
+  const events = value.map(validateEvent),
+    map = new Map(events.map((event) => [event.id, event]))
+  if (map.size !== events.length) throw Error('Duplicate event ID')
+  const active = new Set<string>(),
+    done = new Set<string>()
+  function visit(key: string): void {
+    if (active.has(key)) throw Error('Unlock condition cycle')
+    if (done.has(key)) return
+    const event = map.get(key)
+    if (!event) throw Error('Unknown required event')
+    active.add(key)
+    for (const required of event.condition.requiredCompleted) visit(required)
+    active.delete(key)
+    done.add(key)
+  }
+  for (const event of events) visit(event.id)
+  return events
+}

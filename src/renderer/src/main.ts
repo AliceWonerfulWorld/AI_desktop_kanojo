@@ -39,6 +39,7 @@ function blocked(): boolean {
     suspended ||
     document.hidden ||
     presentation?.visible === false ||
+    presentation?.eventPaused === true ||
     presentation?.settings.paused === true
   )
 }

@@ -111,6 +111,9 @@ export function createDesktopWindow(
     return {
       revision,
       saveFailed,
+      eventPaused:
+        generalPreviousShown !== undefined ||
+        privateSession.snapshot().phase === 'active',
       visible: shown,
       settings: memory().snapshot().settings,
     }

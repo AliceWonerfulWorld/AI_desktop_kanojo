@@ -3,6 +3,7 @@ import test from 'node:test'
 import { URL } from 'node:url'
 import { readFileSync } from 'node:fs'
 import {
+  validateCatalog,
   validateEvent,
   validateEventRecords,
   isEventUnlocked,
@@ -271,5 +272,25 @@ test('IPC accepts only bounded, exact event intents, never paths, node jumps or 
   assert.equal(
     isEventCommand({ kind: 'choose', revision: 3, choiceId: 'tea' }),
     true,
+  )
+})
+
+test('catalog rejects duplicate events and missing or cyclic unlock dependencies', () => {
+  assert.equal(validateCatalog([raw]).length, 1)
+  assert.throws(() => validateCatalog([raw, raw]), /Duplicate/)
+  const next = {
+    ...raw,
+    id: 'next',
+    condition: { minAffection: 0, requiredCompleted: ['missing'] },
+  }
+  assert.throws(() => validateCatalog([raw, next]), /Unknown/)
+  next.condition.requiredCompleted = [raw.id]
+  assert.throws(
+    () =>
+      validateCatalog([
+        { ...raw, condition: { minAffection: 0, requiredCompleted: ['next'] } },
+        next,
+      ]),
+    /cycle/,
   )
 })

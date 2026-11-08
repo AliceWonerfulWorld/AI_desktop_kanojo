@@ -24,7 +24,8 @@
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "test:character": "electron scripts/character-smoke.cjs",
     "assets:test": "node scripts/generate-test-character.cjs",
-    "test:private-mode": "node scripts/private-mode-smoke.cjs"
+    "test:private-mode": "node scripts/private-mode-smoke.cjs",
+    "test:events": "node scripts/events-smoke.cjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

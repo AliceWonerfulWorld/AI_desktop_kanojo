@@ -3,7 +3,10 @@
   "version": 1,
   "title": "ひと休みの相談（動作確認サンプル）",
   "audience": "general",
-  "condition": { "minAffection": 0, "requiredCompleted": [] },
+  "condition": {
+    "minAffection": 0,
+    "requiredCompleted": []
+  },
   "entry": "hello",
   "nodes": [
     {
@@ -33,7 +36,7 @@
         },
         {
           "id": "book",
-          "text": "本を選んで、静かな時間を過ごす（画像欠損時の表示確認）",
+          "text": "本を選んで、静かな時間を過ごす",
           "next": "book"
         }
       ],
@@ -53,7 +56,7 @@
     {
       "id": "book",
       "speaker": "小春",
-      "text": "読書にしよう。画像を用意できない時でも、お話はそのまま読めるよ。",
+      "text": "読書にしよう。静かな時間に好きな本を開くのって、落ち着くね。",
       "expression": "neutral",
       "effect": "none",
       "cgAssetId": "missing-card",

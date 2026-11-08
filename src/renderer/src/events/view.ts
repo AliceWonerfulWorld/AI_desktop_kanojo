@@ -17,12 +17,15 @@ export function mountEventView(
     disposed = false,
     png: PngCharacterRenderer | undefined,
     frameKey = ''
+  let inputError = ''
   const warning = (): void => {
     get('event-warning').textContent = state?.saveFailed
       ? '保存できませんでした。再起動後は最後に保存できた位置からになります。非表示・終了は利用できます。'
-      : state?.paused
-        ? '進行は一時停止中です。再開には明示操作が必要です。'
-        : ''
+      : inputError
+        ? inputError
+        : state?.paused
+          ? '進行は一時停止中です。再開には明示操作が必要です。'
+          : ''
   }
   const render = (next: EventView): void => {
     if (disposed || (state && next.revision < state.revision)) return
@@ -33,6 +36,8 @@ export function mountEventView(
     root.dataset.phase = next.phase
     root.dataset.revision = String(next.revision)
     get('event-resume').hidden = embedded || !next.paused
+    get<HTMLButtonElement>('event-resume').disabled = false
+    get<HTMLButtonElement>('event-list').disabled = false
     get('event-list').hidden = next.phase !== 'playing'
     get('event-catalog').hidden = next.phase !== 'list'
     get('event-frame').hidden = next.phase !== 'playing'
@@ -79,6 +84,9 @@ export function mountEventView(
       png?.dispose()
       png = undefined
       frameKey = ''
+      delete root.dataset.node
+      delete root.dataset.page
+      delete root.dataset.visualReady
       return
     }
     root.dataset.node = frame.nodeId
@@ -110,6 +118,7 @@ export function mountEventView(
       fallback = get('event-image-fallback'),
       character = get('event-character')
     if (key !== frameKey) {
+      root.dataset.visualReady = 'false'
       get('event-visual').className =
         frame.effect === 'gentle' ? 'event-gentle' : ''
       if (frame.cgAssetId) {
@@ -120,11 +129,22 @@ export function mountEventView(
         image.hidden = !url
         fallback.hidden = !!url
         image.onerror = () => {
+          if (disposed || frameKey !== key) return
           image.hidden = true
           fallback.hidden = false
+          root.dataset.visualReady = 'true'
         }
-        if (url) image.src = url
-        else image.removeAttribute('src')
+        image.onload = () => {
+          if (!disposed && frameKey === key) root.dataset.visualReady = 'true'
+        }
+        if (url) {
+          image.src = url
+          if (image.complete && image.naturalWidth > 0)
+            root.dataset.visualReady = 'true'
+        } else {
+          image.removeAttribute('src')
+          root.dataset.visualReady = 'true'
+        }
       } else {
         image.hidden = true
         image.removeAttribute('src')
@@ -134,8 +154,10 @@ export function mountEventView(
         void png
           .setState({ action: 'idle', expression: frame.expression })
           .then((result) => {
-            if (!disposed && root.dataset.node === frame.nodeId)
+            if (!disposed && frameKey === key) {
               fallback.hidden = !!result.assetId
+              root.dataset.visualReady = 'true'
+            }
           })
       }
       frameKey = key
@@ -154,6 +176,7 @@ export function mountEventView(
     )
       return
     pending = true
+    inputError = ''
     // Disable before IPC; the revision also rejects duplicate native/keyboard events.
     for (const button of root.querySelectorAll<HTMLButtonElement>('button'))
       if (!['event-return', 'event-hide'].includes(button.id))
@@ -166,8 +189,9 @@ export function mountEventView(
         } as EventCommand),
       )
     } catch {
-      get('event-warning').textContent =
+      inputError =
         '操作できませんでした。現在の画面を確認してもう一度お試しください。'
+      warning()
       try {
         render(await window.events.getView())
       } catch {

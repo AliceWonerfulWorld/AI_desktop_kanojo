@@ -1,19 +1,19 @@
 import sample from './data/sample.json'
-import { validateEvent, type StoryEvent } from './event-schema'
+import { validateCatalog, type StoryEvent } from './event-schema'
 const raw: unknown[] = [
   sample,
   {
     ...sample,
     id: 'tea-locked',
-    title: 'もう少し仲良くなったら（解放条件確認）',
+    title: 'もう少し仲良くなったら',
     condition: { minAffection: 70, requiredCompleted: [] },
   },
 ]
-export const eventCatalog: readonly StoryEvent[] = raw.flatMap((value) => {
+export const eventCatalog: readonly StoryEvent[] = (() => {
   try {
-    return [validateEvent(value)]
+    return validateCatalog(raw)
   } catch (error) {
-    console.error('Invalid event definition', error)
+    console.error('Invalid event catalog', error)
     return []
   }
-})
+})()
