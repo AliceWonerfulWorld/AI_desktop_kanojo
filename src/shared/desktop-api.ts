@@ -11,6 +11,7 @@ export const channels = {
   interaction: 'desktop:interaction',
   action: 'desktop:action',
   presentation: 'desktop:presentation',
+  eventWindow: 'events:window',
   eventGet: 'events:get',
   eventCommand: 'events:command',
   eventChanged: 'events:changed',

@@ -12,6 +12,7 @@ export interface StoryNode {
   expression: Expression
   effect: 'none' | 'gentle'
   cgAssetId: string | null
+  presentation: 'standard' | 'cg_focus'
   next: string | null
   choices: EventChoice[]
   end: boolean
@@ -73,6 +74,9 @@ export function validateEvent(value: unknown): StoryEvent {
     if (
       !expressions.includes(n.expression as Expression) ||
       !['none', 'gentle'].includes(n.effect as string) ||
+      (n.presentation !== undefined &&
+        !['standard', 'cg_focus'].includes(n.presentation as string)) ||
+      (n.presentation === 'cg_focus' && n.cgAssetId === null) ||
       typeof n.end !== 'boolean' ||
       !Array.isArray(n.choices) ||
       n.choices.length > 8
@@ -98,6 +102,7 @@ export function validateEvent(value: unknown): StoryEvent {
       expression: n.expression as Expression,
       effect: n.effect as StoryNode['effect'],
       cgAssetId: n.cgAssetId === null ? null : id(n.cgAssetId),
+      presentation: (n.presentation ?? 'standard') as StoryNode['presentation'],
       next,
       choices,
       end: n.end,

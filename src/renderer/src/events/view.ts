@@ -1,13 +1,28 @@
-import type { EventCommand, EventView } from '../../../shared/events-api'
+import type {
+  EventCommand,
+  EventView,
+  EventWindowState,
+  EventWindowCommand,
+} from '../../../shared/events-api'
 import { PngCharacterRenderer } from '../character/png-renderer'
 import { characterAssets } from '../character/assets'
 import teaCard from '../../../../assets/events/tea-card.svg'
-const images: Record<string, string> = { 'tea-card': teaCard }
+import wideCard from '../../../../assets/events/wide-card.svg'
+import wideSmileCard from '../../../../assets/events/wide-smile-card.svg'
+import fourCard from '../../../../assets/events/four-card.svg'
+const images: Record<string, string> = {
+  'tea-card': teaCard,
+  'wide-card': wideCard,
+  'wide-smile-card': wideSmileCard,
+  'four-card': fourCard,
+  // Deliberately undecodable all-ages fixture for the image-error path.
+  'broken-card': 'data:image/png;base64,bm90LWFuLWltYWdl',
+}
 export function mountEventView(
   root: HTMLElement,
   embedded = false,
 ): () => void {
-  root.innerHTML = `<div class="event-tools"><button id="event-return" type="button">日常へ戻る</button><button id="event-hide" type="button">非表示</button><button id="event-list" type="button" hidden>イベントを選び直す</button><button id="event-resume" type="button" hidden>明示的に再開する</button></div><p id="event-warning" role="status" aria-live="polite"></p><section id="event-catalog" aria-label="イベント一覧"></section><section id="event-frame" class="event-layout" hidden><div id="event-visual"><div id="event-character"></div><img id="event-cg" alt="イベント用の仮画像" hidden/><p id="event-image-fallback" hidden>画像を表示できません。お話はこのまま続けられます。</p></div><div class="event-dialogue"><h2 id="event-title"></h2><h3 id="event-speaker"></h3><div id="event-text" tabindex="0" role="region" aria-label="会話本文"></div><p id="event-page"></p><button id="event-next" type="button">次へ →</button><p id="event-choice-label" hidden>選択してください</p><div id="event-choices"></div></div></section>`
+  root.innerHTML = `<button id="event-show-ui" type="button" hidden>台詞を戻す（H / Esc）</button><div class="event-tools"><button id="event-return" type="button">日常へ戻る</button><button id="event-hide" type="button">非表示</button><button id="event-list" type="button" hidden>イベントを選び直す</button><button id="event-resume" type="button" hidden>明示的に再開する</button><button id="event-inspect" type="button" hidden>CGだけ見る（H）</button><button id="event-maximize" type="button">最大化</button><button id="event-fullscreen" type="button">全画面</button></div><p id="event-warning" role="status" aria-live="polite"></p><section id="event-catalog" aria-label="イベント一覧"></section><section id="event-frame" class="event-layout" hidden><div id="event-visual"><div id="event-character"></div><img id="event-cg" alt="イベント用の仮画像" hidden/><p id="event-image-fallback" hidden>画像を表示できません。お話はこのまま続けられます。</p></div><div class="event-dialogue"><h2 id="event-title"></h2><h3 id="event-speaker"></h3><div id="event-text" tabindex="0" role="region" aria-label="会話本文"></div><p id="event-page"></p><button id="event-next" type="button">次へ →</button><p id="event-choice-label" hidden>選択してください</p><div id="event-choices"></div></div></section>`
   const get = <T extends HTMLElement>(id: string): T =>
     root.querySelector<T>(`#${id}`)!
   get('event-return').hidden = embedded
@@ -18,6 +33,50 @@ export function mountEventView(
     png: PngCharacterRenderer | undefined,
     frameKey = ''
   let inputError = ''
+  let uiHidden = false
+  let windowState: EventWindowState = {
+    maximized: false,
+    fullscreen: false,
+    transitioning: false,
+  }
+  const showUI = (hidden: boolean): void => {
+    uiHidden =
+      hidden && root.dataset.presentation === 'cg_focus' && !state?.paused
+    root.dataset.uiHidden = String(uiHidden)
+    get('event-show-ui').hidden = !uiHidden
+    if (uiHidden) get('event-show-ui').focus({ preventScroll: true })
+    else get('event-text').focus({ preventScroll: true })
+  }
+  const renderWindow = (value: EventWindowState): void => {
+    if (disposed) return
+    windowState = value
+    get('event-maximize').textContent = value.maximized
+      ? '最大化を解除'
+      : '最大化'
+    get('event-fullscreen').textContent = value.fullscreen
+      ? '全画面を解除'
+      : '全画面'
+    get<HTMLButtonElement>('event-maximize').disabled =
+      value.transitioning || value.fullscreen
+    get<HTMLButtonElement>('event-fullscreen').disabled = value.transitioning
+  }
+  const windowControl = async (command: EventWindowCommand): Promise<void> => {
+    try {
+      renderWindow(await window.events.windowControl(command))
+    } catch {
+      inputError =
+        '画面を変更できませんでした。閉じる・日常へ戻るは利用できます。'
+      warning()
+    }
+  }
+  const presentation = (focus: boolean): void => {
+    root.dataset.presentation = focus ? 'cg_focus' : 'standard'
+    get('event-inspect').hidden = !focus
+    get('event-return').hidden = embedded && !focus
+    get('event-hide').hidden = embedded && !focus
+    if (!focus || state?.paused) showUI(false)
+  }
+
   const warning = (): void => {
     get('event-warning').textContent = state?.saveFailed
       ? '保存できませんでした。再起動後は最後に保存できた位置からになります。非表示・終了は利用できます。'
@@ -32,10 +91,12 @@ export function mountEventView(
     const changed = !state || next.revision !== state.revision
     state = next
     warning()
+    if (next.saveFailed && uiHidden) showUI(false)
     if (!changed) return
+    if (next.paused) showUI(false)
     root.dataset.phase = next.phase
     root.dataset.revision = String(next.revision)
-    get('event-resume').hidden = embedded || !next.paused
+    get('event-resume').hidden = !next.paused
     get<HTMLButtonElement>('event-resume').disabled = false
     get<HTMLButtonElement>('event-list').disabled = false
     get('event-list').hidden = next.phase !== 'playing'
@@ -84,11 +145,13 @@ export function mountEventView(
       png?.dispose()
       png = undefined
       frameKey = ''
+      presentation(false)
       delete root.dataset.node
       delete root.dataset.page
       delete root.dataset.visualReady
       return
     }
+    if (root.dataset.node !== frame.nodeId) showUI(false)
     root.dataset.node = frame.nodeId
     root.dataset.page = String(frame.page)
     get('event-title').textContent = frame.title
@@ -118,30 +181,43 @@ export function mountEventView(
       fallback = get('event-image-fallback'),
       character = get('event-character')
     if (key !== frameKey) {
+      presentation(
+        frame.presentation === 'cg_focus' &&
+          !!frame.cgAssetId &&
+          !!images[frame.cgAssetId],
+      )
       root.dataset.visualReady = 'false'
       get('event-visual').className =
-        frame.effect === 'gentle' ? 'event-gentle' : ''
+        frame.effect === 'gentle' && frame.presentation !== 'cg_focus'
+          ? 'event-gentle'
+          : ''
       if (frame.cgAssetId) {
         png?.dispose()
         png = undefined
         character.hidden = true
         const url = images[frame.cgAssetId]
-        image.hidden = !url
         fallback.hidden = !!url
-        image.onerror = () => {
+        const failed = (): void => {
           if (disposed || frameKey !== key) return
           image.hidden = true
+          image.removeAttribute('src')
+          presentation(false)
           fallback.hidden = false
           root.dataset.visualReady = 'true'
         }
-        image.onload = () => {
-          if (!disposed && frameKey === key) root.dataset.visualReady = 'true'
-        }
         if (url) {
-          image.src = url
-          if (image.complete && image.naturalWidth > 0)
+          // Decode offscreen before replacing the visible frame. A late load/error
+          // from a previous CG must never alter the current node's presentation.
+          const loader = new Image()
+          loader.src = url
+          void loader.decode().then(() => {
+            if (disposed || frameKey !== key) return
+            image.src = url
+            image.hidden = false
             root.dataset.visualReady = 'true'
+          }, failed)
         } else {
+          image.hidden = true
           image.removeAttribute('src')
           root.dataset.visualReady = 'true'
         }
@@ -166,7 +242,7 @@ export function mountEventView(
       }
       frameKey = key
     }
-    get('event-text').focus({ preventScroll: true })
+    if (!uiHidden) get('event-text').focus({ preventScroll: true })
   }
   type Intent =
     | { kind: 'start'; eventId: string; resume: boolean }
@@ -176,6 +252,7 @@ export function mountEventView(
     if (
       !state ||
       disposed ||
+      (uiHidden && !['return', 'hide'].includes(intent.kind)) ||
       (pending && intent.kind !== 'return' && intent.kind !== 'hide')
     )
       return
@@ -183,7 +260,16 @@ export function mountEventView(
     inputError = ''
     // Disable before IPC; the revision also rejects duplicate native/keyboard events.
     for (const button of root.querySelectorAll<HTMLButtonElement>('button'))
-      if (!['event-return', 'event-hide'].includes(button.id))
+      if (
+        ![
+          'event-return',
+          'event-hide',
+          'event-inspect',
+          'event-show-ui',
+          'event-maximize',
+          'event-fullscreen',
+        ].includes(button.id)
+      )
         button.disabled = true
     try {
       render(
@@ -220,11 +306,50 @@ export function mountEventView(
     get(id).addEventListener('click', () => {
       void send({ kind })
     })
+  get('event-inspect').addEventListener('click', () => showUI(true))
+  get('event-show-ui').addEventListener('click', () => showUI(false))
+  get('event-maximize').addEventListener('click', () => {
+    void windowControl('maximize')
+  })
+  get('event-fullscreen').addEventListener('click', () => {
+    void windowControl('fullscreen')
+  })
   const keydown = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape' && !event.repeat) {
+    if (
+      event.key.toLowerCase() === 'h' &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      root.dataset.presentation === 'cg_focus'
+    ) {
       event.preventDefault()
-      event.stopPropagation()
-      void send({ kind: 'return' })
+      event.stopImmediatePropagation()
+      if (!event.repeat) showUI(!uiHidden)
+      return
+    }
+    if (event.key === 'F11') {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      if (!event.repeat) void windowControl('fullscreen')
+      return
+    }
+
+    if (event.key === 'Escape' && !event.repeat) {
+      // The private shell owns ordinary exits, including the initial asynchronous
+      // event-view load. Only consume Escape when restoring UI/fullscreen here.
+      if (
+        embedded &&
+        !uiHidden &&
+        !windowState.fullscreen &&
+        !windowState.transitioning
+      )
+        return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      if (uiHidden) showUI(false)
+      else if (windowState.fullscreen || windowState.transitioning) {
+        if (!windowState.transitioning) void windowControl('restore')
+      } else void send({ kind: 'return' })
     } else if (
       (event.key === 'Enter' || event.key === ' ') &&
       event.target === get('event-text')
@@ -234,7 +359,9 @@ export function mountEventView(
         void send({ kind: 'advance' })
     }
   }
-  root.addEventListener('keydown', keydown)
+  window.addEventListener('keydown', keydown, true)
+  const removeWindow = window.events.onWindowChange(renderWindow)
+  void windowControl('get')
   const remove = window.events.onChange(render)
   void window.events
     .getView()
@@ -247,7 +374,8 @@ export function mountEventView(
     disposed = true
     remove()
     png?.dispose()
-    root.removeEventListener('keydown', keydown)
+    removeWindow()
+    window.removeEventListener('keydown', keydown, true)
     root.replaceChildren()
   }
 }

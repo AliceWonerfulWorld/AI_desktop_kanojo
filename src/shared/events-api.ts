@@ -17,6 +17,7 @@ export interface EventFrame {
   pageCount: number
   expression: StoryNode['expression']
   effect: StoryNode['effect']
+  presentation: StoryNode['presentation']
   cgAssetId: string | null
   choices: { id: string; text: string }[]
   end: boolean
@@ -38,7 +39,15 @@ export type EventCommand =
       revision: number
     }
   | { kind: 'choose'; revision: number; choiceId: string }
+export type EventWindowCommand = 'get' | 'maximize' | 'fullscreen' | 'restore'
+export interface EventWindowState {
+  maximized: boolean
+  fullscreen: boolean
+  transitioning: boolean
+}
 export interface EventsAPI {
+  windowControl(command: EventWindowCommand): Promise<EventWindowState>
+  onWindowChange(listener: (state: EventWindowState) => void): () => void
   getView(): Promise<EventView>
   command(command: EventCommand): Promise<EventView>
   onChange(listener: (view: EventView) => void): () => void

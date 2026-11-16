@@ -136,3 +136,92 @@ h1 {
   font-size: 23px;
   margin: 0 0 12px;
 }
+
+/* #44 is an addition for CG nodes, not a replacement for standard/A. */
+[data-presentation='cg_focus'] {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: #201e26;
+  color: #fff8f1;
+}
+[data-presentation='cg_focus'] .event-layout {
+  display: block;
+  position: absolute;
+  inset: 0;
+  margin: 0;
+}
+[data-presentation='cg_focus'] #event-visual {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+[data-presentation='cg_focus'] .event-dialogue {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  max-height: 48%;
+  overflow-y: auto;
+  background: rgb(30 26 36 / 92%);
+  color: #fff8f1;
+  border: 1px solid #cfa9bb;
+  padding: 14px 20px;
+  scrollbar-gutter: stable;
+}
+[data-presentation='cg_focus'] .event-tools {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background: rgb(30 26 36 / 92%);
+  z-index: 2;
+}
+[data-presentation='cg_focus'] #event-warning:not(:empty) {
+  position: absolute;
+  top: 108px;
+  left: 12px;
+  right: 12px;
+  z-index: 3;
+  background: #fff8f1;
+  color: #243042;
+  padding: 8px;
+}
+[data-presentation='cg_focus'] :focus-visible {
+  outline-color: #f6c7df;
+  outline-offset: -3px;
+}
+[data-ui-hidden='true'] .event-tools,
+[data-ui-hidden='true'] .event-dialogue,
+[data-ui-hidden='true'] #event-warning {
+  display: none;
+}
+#event-show-ui {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff8f1;
+  text-shadow: 0 1px 3px #000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 12px;
+}
+
+[data-presentation='cg_focus'] #event-title {
+  display: none;
+}
+[data-presentation='cg_focus'] #event-text {
+  max-height: 18vh;
+}
+[data-presentation='cg_focus'] #event-page {
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 4px 0;
+}

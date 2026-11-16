@@ -72,6 +72,7 @@ app.on('browser-window-created', (_event, window) => {
         'never auto-open event at restart',
       )
       const open = async (fromSettings = false) => {
+        app.focus({ steal: true })
         if (fromSettings) {
           menu.items.find((item) => item.label === '設定…').click()
           const settings = BrowserWindow.getAllWindows().find(
@@ -89,6 +90,9 @@ app.on('browser-window-created', (_event, window) => {
             await settings.webContents.executeJavaScript(
               "window.settings.applyOutfit('loungewear')",
             )
+          settings.show()
+          settings.focus()
+          await waitFor(() => settings.isFocused(), 'settings entry focus')
           await settings.webContents.executeJavaScript(
             "document.querySelector('#event-open').click()",
           )

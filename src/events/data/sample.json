@@ -49,6 +49,7 @@
       "expression": "smile",
       "effect": "gentle",
       "cgAssetId": "tea-card",
+      "presentation": "cg_focus",
       "next": "end",
       "choices": [],
       "end": false
@@ -60,6 +61,7 @@
       "expression": "neutral",
       "effect": "none",
       "cgAssetId": "missing-card",
+      "presentation": "cg_focus",
       "next": "end",
       "choices": [],
       "end": false
