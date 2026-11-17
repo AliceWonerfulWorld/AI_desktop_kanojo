@@ -161,8 +161,15 @@ app.on('browser-window-created', (_event, window) => {
         await hidden(true)
       }
       const capture = async (name) => {
+        await waitFor(
+          () =>
+            evaluate(
+              "document.querySelector('[data-visual-ready=true]')!==null",
+            ),
+          'capture visual ready',
+        )
         await evaluate(
-          'new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))',
+          'document.fonts.ready.then(()=>Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})))).then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))',
         )
         writeFileSync(
           join(require('node:os').tmpdir(), name),
@@ -274,6 +281,7 @@ app.on('browser-window-created', (_event, window) => {
         )
         await start()
         assert.equal((await view()).frame.presentation, 'standard')
+        await capture('kanojo-standard.png')
         await command('advance')
         await node('wide')
         const progress = (await view()).frame
@@ -303,6 +311,7 @@ app.on('browser-window-created', (_event, window) => {
         await click('event-maximize')
         await waitFor(() => events.isMaximized(), 'maximize')
         await fullscreen()
+        await capture('kanojo-cg-fullscreen.png')
         await key('Escape')
         await waitFor(
           () => !isFullscreen() && events.isMaximized(),
@@ -313,6 +322,10 @@ app.on('browser-window-created', (_event, window) => {
             !(await evaluate("window.events.windowControl('get')"))
               .transitioning,
           'restore settled',
+        )
+        await waitFor(
+          () => evaluate("!document.querySelector('#event-maximize').disabled"),
+          'maximize control restored',
         )
         await click('event-maximize')
         await waitFor(() => !events.isMaximized(), 'unmaximize')
@@ -349,6 +362,14 @@ app.on('browser-window-created', (_event, window) => {
           ),
           true,
         )
+        events.setSize(960, 640)
+        await waitFor(() => evaluate('innerWidth>=940'), 'choice capture size')
+        await evaluate(
+          "document.querySelector('#event-choice-label').scrollIntoView({block:'start'})",
+        )
+        await capture('kanojo-cg-choices.png')
+        events.setSize(640, 480)
+        await waitFor(() => evaluate('innerWidth<=640'), 'choice minimum size')
         await evaluate(
           "document.querySelector('#event-choices button:last-child').scrollIntoView()",
         )
