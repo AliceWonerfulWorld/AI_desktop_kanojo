@@ -1,3 +1,4 @@
+import { attachEventWindowControls } from './event-window-controls'
 import { BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
 export function createEventWindow(): BrowserWindow {
@@ -18,6 +19,7 @@ export function createEventWindow(): BrowserWindow {
       sandbox: true,
     },
   })
+  attachEventWindowControls(window)
   window.setIgnoreMouseEvents(false)
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   return window

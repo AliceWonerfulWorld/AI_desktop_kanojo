@@ -30,6 +30,20 @@ try {
     )
     assert.equal(saved.events['tea-sample'].completed, phase !== 'interrupt')
   }
+  for (const phase of ['edit', 'resume']) {
+    const result = spawnSync(
+      require('electron'),
+      [join(__dirname, 'cg-focus-process.cjs'), directory, phase],
+      { encoding: 'utf8', timeout: 100000 },
+    )
+    if (result.stdout) process.stdout.write(result.stdout)
+    if (result.stderr) process.stderr.write(result.stderr)
+    assert.equal(
+      result.status,
+      0,
+      `CG focus failed: ${phase}; ${result.error ?? ''}`,
+    )
+  }
   console.log(
     'Event smoke passed: playback, choices, CG fallback, explicit restart, pause, security, save failure and normal return',
   )

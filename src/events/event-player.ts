@@ -88,6 +88,7 @@ export class EventPlayer {
               expression: node.expression,
               effect: node.effect,
               cgAssetId: node.cgAssetId,
+              presentation: node.presentation,
               choices: last
                 ? node.choices.map(({ id, text }) => ({ id, text }))
                 : [],

@@ -1,3 +1,4 @@
+import { attachEventWindowControls } from './event-window-controls'
 import { BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
 
@@ -21,6 +22,7 @@ export function createPrivateModeWindow(): BrowserWindow {
       sandbox: true,
     },
   })
+  attachEventWindowControls(window)
   window.setIgnoreMouseEvents(false)
   window.setContentProtection(true)
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))

@@ -1,3 +1,4 @@
+import { controlEventWindow } from './event-window-controls'
 import { characterRegistry } from '../shared/outfit-registry'
 import { isOutfitId, type OutfitId } from '../shared/outfits'
 import { EventPlayer, isEventCommand } from '../events/event-player'
@@ -602,6 +603,23 @@ export function createDesktopWindow(
       ? target
       : undefined
   }
+  ipcMain.handle(channels.eventWindow, (event, command: unknown) => {
+    const target = eventTarget(event)
+    if (
+      !target ||
+      quitting ||
+      suspended ||
+      resetPending ||
+      !['get', 'maximize', 'fullscreen', 'restore'].includes(command as string)
+    )
+      throw Error('Invalid event window command')
+    if (command !== 'get' && !target.isFocused())
+      throw Error('Event must be focused')
+    return controlEventWindow(
+      target,
+      command as import('../shared/events-api').EventWindowCommand,
+    )
+  })
   ipcMain.handle(channels.eventOpen, (event) => {
     if (!trustedSettings(event) || !settingsWindow!.isFocused())
       throw Error('Untrusted event entry')
@@ -926,6 +944,7 @@ export function createDesktopWindow(
     leavePrivate('hidden')
     settingsWindow?.destroy()
     for (const channel of [
+      channels.eventWindow,
       channels.eventGet,
       channels.eventCommand,
       channels.eventOpen,

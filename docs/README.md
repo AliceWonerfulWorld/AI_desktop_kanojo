@@ -78,3 +78,5 @@
 [Event-01 データ駆動イベント](27-event-engine-validation.md): 一般一覧・A案再生・選択/CG・中断保存・日常復元、専用モードとの境界と検証。
 
 [Costume-01 衣装レジストリ](28-outfit-registry-validation.md): D7の明示適用・旧v1補完・衣装分離、部屋着3PNGの実登録・切替検証と画像品質/メモリの残課題。
+
+[Issue #44 CGフォーカス](29-cg-focus-validation.md): CGノード限定の追加レイアウト、鑑賞・全画面、#31向けデータ例と検証。

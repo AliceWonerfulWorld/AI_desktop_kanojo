@@ -294,3 +294,53 @@ test('catalog rejects duplicate events and missing or cyclic unlock dependencies
     /cycle/,
   )
 })
+
+test('presentation defaults for legacy data, validates values and requires a CG ID', () => {
+  assert.equal(sample.nodes[0].presentation, 'standard')
+  assert.equal(
+    sample.nodes.find((n) => n.id === 'tea').presentation,
+    'cg_focus',
+  )
+  for (const presentation of ['cover', null, 0, {}]) {
+    const event = JSON.parse(JSON.stringify(raw))
+    event.nodes[0].presentation = presentation
+    assert.throws(() => validateEvent(event), /Invalid node/)
+  }
+  const event = JSON.parse(JSON.stringify(raw))
+  event.nodes[0].presentation = 'cg_focus'
+  assert.throws(() => validateEvent(event), /Invalid node/)
+})
+test('focus mode resumes from the same checkpoint without persisting window or inspection UI state', () => {
+  const { session, player, command } = fixture()
+  player.open('general')
+  command('start', { eventId: sample.id, resume: false })
+  command('advance')
+  command('choose', { choiceId: 'tea' })
+  assert.equal(player.view().frame.presentation, 'cg_focus')
+  const saved = validateMemory(JSON.parse(JSON.stringify(session.snapshot())))
+  player.close()
+  const next = new EventPlayer(
+    [sample],
+    () => saved,
+    () => {},
+  )
+  next.open('general')
+  assert.equal(next.view().frame, null)
+  next.apply({
+    kind: 'start',
+    revision: next.view().revision,
+    eventId: sample.id,
+    resume: true,
+  })
+  assert.equal(next.view().frame.presentation, 'cg_focus')
+  next.apply({ kind: 'advance', revision: next.view().revision })
+  assert.equal(next.view().frame.presentation, 'standard')
+  assert.deepEqual(Object.keys(saved.events[sample.id]).sort(), [
+    'choices',
+    'completed',
+    'node',
+    'page',
+    'version',
+    'visited',
+  ])
+})
